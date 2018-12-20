@@ -1,0 +1,61 @@
+
+ Start ellc_emcee.py at Thu Nov 16 12:11:08 2017
+
+ Using ellc grid size very_sparse
+
+ Attempting to read light curve file  HD23642.dat
+ Succesfully read light curve file HD23642.dat
+ Line  1: ( 7064.068193, -0.0019,  0.00097, 5)
+ Line 2814: ( 7132.637103, -0.0019,  0.00095, 1)
+
+#  -- Start of user input block -- 
+HD23642.dat    #+ Light curve file 
+Kp    #+ Photometric band 
+0.145 0.0023      #+  r_1 = R_1/a
+0.1262 0.0037      #+  r_2 = R_2/a
+0.4859 0.0068      #+  s = S_2/S_1, surface brightness ratio
+78.21 0.11      #+  i = inclination (degrees)
+0.0      #+  l_3 = third light  (fixed)
+7119.52217 6e-05      #+  T_0, time of mid-eclipse
+2.4611357 5e-07      #+  P = orbital period (days)
+0.0      #+  f_c = sqrt(e).cos(omega)  (fixed)
+0.0      #+  f_s = sqrt(e).sin(omega)  (fixed)
+0.0      #+  domdt = apsidal motion rate [deg/cycle])  (fixed)
+1.0      #+  F_1 = asynchronous rotation factor, star 1  (fixed)
+1.0      #+  F_2 = asynchronous rotation factor, star 2  (fixed)
+11500.0 750.0      #+  Teff1 = T_eff,1
+4.25      #+  g1 = log(g_1)  (fixed)
+8200.0 400.0      #+  Teff2 = T_eff,2
+4.25      #+  g2 = log(g_1)  (fixed)
+0.0      #+  [M/H]  (fixed)
+0.2 0.1      #+  A_1 = reflection coefficient, star 1
+0.2 0.1      #+  A_2 = reflection coefficient, star 2
+0.0      #+  sig_ext = external noise  (fixed)
+1      #+  Polynomial degree for normalization  (fixed)
+0.707      #+  Mass ratio q=m_2/m_1  (fixed)
+1766.0      #+  T_exp (seconds)  (fixed)
+0      #+  Number of spots on star 1  (fixed)
+0      #+  Number of spots on star 2  (fixed)
+200      #+  Number of emcee walkers  (fixed)
+1000      #+  Number of steps in the emcee chain  (fixed)
+8      #+  Number of threads for emcee  (fixed)
+lrat G 0.354 0.035               #+  Prior
+end    #+  End of priors
+# --  End of user input block -- 
+
+
+ No. of free parameters =  10
+
+ No. of priors =  1
+
+ Initialising walkers
+Initialised 200 walkers after 214 trials
+
+
+Median acceptance fraction = 0.33
+
+ Writing best model fit to   model.csv
+Assuming standard error for external noise of  0.0
+
+ End  /Users/pflm/anaconda/lib/python3.6/site-packages/ellc-1.6.2-py3.6-macosx-10.7-x86_64.egg/EGG-INFO/scripts/ellc_emcee Thu Nov 16 12:57:38 2017
+

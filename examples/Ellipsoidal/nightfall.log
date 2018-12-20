@@ -1,0 +1,84 @@
+ Comp   1 GravDarkCoeff   0.2500  Albedo   1.0000
+ Comp   2 GravDarkCoeff   0.0550  Albedo   0.5000
+ Comp   3 GravDarkCoeff   0.2500  Albedo   1.0000
+
+Eccentric orbit: 
+ Mean Anomaly at Secondary Eclipse -2.3210,
+ Minimum Distance  0.750,
+ Mean Anomaly at Quadrature  0.6547
+
+ -- Primary defined   --
+
+ -- Secondary defined --
+
+Effective Wavelengths / Doppler Boost Factor:
+ Primary: 
+  U: 0.3548 B: 0.4289 V: 0.5408 R: 0.6125 I: 0.7805
+  u: 0.3498 v: 0.4109 b: 0.4669 y: 0.5468
+  J: 1.2336 H: 1.6032 K: 2.1825
+
+  U: 2.3351 B: 2.0629 V: 1.8084 R: 1.6997 I: 1.5307
+  u: 2.3579 v: 2.1187 b: 1.9609 y: 1.7980
+  J: 1.3198 H: 1.2411 K: 1.1738
+
+Effective Wavelengths / Doppler Boost Factor:
+ Secondary: 
+  U: 0.3775 B: 0.4708 V: 0.5711 R: 0.6850 I: 0.7997
+  u: 0.3508 v: 0.4114 b: 0.4674 y: 0.5474
+  J: 1.2530 H: 1.6181 K: 2.1936
+
+  U: 19.0564 B: 15.2798 V: 12.5976 R: 10.5025 I: 8.9964
+  u: 20.5065 v: 17.4857 b: 15.3923 y: 13.1412
+  J: 5.7600 H: 4.4988 K: 3.4078
+
+ Divide Star   1 :   5890 Surface elements
+ Surface Area, Mean Gravity (dimensionless):  2.837639 4.080928
+ Temperature is 20000.000000
+
+ Temperature Distribution corrected for: 
+    Reflection and Gravity Darkening
+    Coefficient for Gravity Darkening was: 0.2500
+
+ Primary divided
+
+ Divide Star   2 :   5890 Surface elements
+ Surface Area, Mean Gravity (dimensionless):  0.000000 27736797.806579
+ Temperature is 2000.000000
+
+ Temperature Distribution corrected for: 
+    Reflection and Gravity Darkening
+    Coefficient for Gravity Darkening was: 0.0550
+
+ Secondary divided
+Limb Darkening Coefficients: 
+ Primary: 
+  U: -0.057  0.644 B: -0.094  0.704 V: -0.128  0.671
+  u: -0.011  0.586 v: -0.080  0.712 
+  b: -0.097  0.699 y: -0.126  0.674
+  R: -0.151  0.635 I: -0.173  0.590
+  J: -0.189  0.521 H: -0.189  0.472 K: -0.176  0.421
+Limb Darkening Coefficients: 
+ Secondary: 
+  U:  2.242 -1.435 B:  2.243 -1.430 V:  1.986 -1.126
+  u:  2.409 -1.630 v:  2.097 -1.268 
+  b:  2.412 -1.623 y:  2.035 -1.181
+  R:  1.574 -0.658 I:  1.208 -0.251
+  J:  0.124  0.926 H:  0.003  1.018 K: -0.253  1.221
+
+ Starting Lightcurve Synthesis
+
+ Divide Star   1 :   5890 Surface elements
+ Surface Area, Mean Gravity (dimensionless):  2.295795 5.160968
+ Temperature is 20000.000000
+
+ Temperature Distribution corrected for: 
+    Reflection and Gravity Darkening
+    Coefficient for Gravity Darkening was: 0.2500
+
+ Divide Star   2 :   5890 Surface elements
+ Surface Area, Mean Gravity (dimensionless):  0.000000 70368742716993.585938
+ Temperature is 2000.000000
+
+ Temperature Distribution corrected for: 
+    Reflection and Gravity Darkening
+    Coefficient for Gravity Darkening was: 0.0550

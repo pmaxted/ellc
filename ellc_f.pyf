@@ -1,0 +1,90 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module ellc_f ! in 
+    interface  ! in :ellc_f
+        module ellc ! in :ellc_f:ellc.f90
+            use utils
+            use spots
+            use stellar
+            use gauss_legendre
+            use ellipse
+            use constants
+            integer, public,parameter,optional :: b_ellc_star2_eclipsed=2
+            integer, public,parameter,optional :: b_ellc_warning=15
+            integer, public,parameter,optional :: b_ellc_star1_eclipsed=1
+            integer, public,parameter,optional :: b_ellc_eclipse=0
+            integer, public,parameter,optional :: b_ellc_error=16
+            integer, public,parameter,optional :: b_ellc_total=3
+            integer, public,parameter,optional :: b_ellc_double_partial=5
+            integer, public,parameter,optional :: b_ellc_transit=4
+            function lc(n_obs,input_times,binary_pars,control_integers, &
+                        spots_1,spots_2,n_mugrid_1,mugrid_1,n_mugrid_2, &
+                        mugrid_2, verbose) result (flux_rv_flag) ! in :ellc_f:ellc.f90:ellc
+                integer, optional,depend(input_times) :: n_obs=len(input_times)
+                double precision dimension(n_obs),intent(in) :: input_times
+                double precision dimension(39),intent(in) :: binary_pars
+                integer dimension(10),intent(in) :: control_integers
+                double precision dimension(:,:),intent(in) :: spots_1
+                double precision dimension(:,:),intent(in) :: spots_2
+                double precision dimension(:),intent(in) :: mugrid_1
+                double precision dimension(:),intent(in) :: mugrid_2
+                integer intent(in) :: verbose
+                double precision dimension(n_obs,6) :: flux_rv_flag
+            end function lc
+            function rv(n_obs,input_times,binary_pars,verbose) result (rv_result) ! in :ellc_f:ellc.f90:ellc
+                integer, optional,depend(input_times) :: n_obs=len(input_times)
+                double precision dimension(n_obs),intent(in) :: input_times
+                double precision dimension(39),intent(in) :: binary_pars
+                integer intent(in) :: verbose
+                double precision dimension(n_obs,2) :: rv_result
+            end function rv
+            function partial(ellipse_a,ellipse_b,ngx,fpar,nfpar,integrate_eclipsed,verbose) ! in :ellc_f:ellc.f90:ellc
+                double precision dimension(14),intent(in) :: ellipse_a
+                double precision dimension(14),intent(in) :: ellipse_b
+                integer intent(in) :: ngx
+                double precision dimension(nfpar),intent(in) :: fpar
+                integer, optional,intent(in),check(len(fpar)>=nfpar),depend(fpar) :: nfpar=len(fpar)
+                logical intent(in) :: integrate_eclipsed
+                integer intent(in) :: verbose
+                double precision :: partial
+            end function partial
+            function double_partial(ellipse_a,ellipse_b,ngx,fpar,nfpar,verbose) ! in :ellc_f:ellc.f90:ellc
+                double precision dimension(14),intent(in) :: ellipse_a
+                double precision dimension(14),intent(in) :: ellipse_b
+                integer intent(in) :: ngx
+                double precision dimension(nfpar),intent(in) :: fpar
+                integer, optional,intent(in),check(len(fpar)>=nfpar),depend(fpar) :: nfpar=len(fpar)
+                integer intent(in) :: verbose
+                double precision :: double_partial
+            end function double_partial
+            function glimnega(f,nelimpar,elimpar) ! in :ellc_f:ellc.f90:ellc
+                double precision intent(in) :: f
+                integer, optional,intent(in),check(len(elimpar)>=nelimpar),depend(elimpar) :: nelimpar=len(elimpar)
+                double precision dimension(nelimpar),intent(in) :: elimpar
+                double precision :: glimnega
+            end function glimnega
+            function glimposa(f,nelimpar,elimpar) ! in :ellc_f:ellc.f90:ellc
+                double precision intent(in) :: f
+                integer, optional,intent(in),check(len(elimpar)>=nelimpar),depend(elimpar) :: nelimpar=len(elimpar)
+                double precision dimension(nelimpar),intent(in) :: elimpar
+                double precision :: glimposa
+            end function glimposa
+            function glimnegb(f,nelimpar,elimpar) ! in :ellc_f:ellc.f90:ellc
+                double precision intent(in) :: f
+                integer, optional,intent(in),check(len(elimpar)>=nelimpar),depend(elimpar) :: nelimpar=len(elimpar)
+                double precision dimension(nelimpar),intent(in) :: elimpar
+                double precision :: glimnegb
+            end function glimnegb
+            function glimposb(f,nelimpar,elimpar) ! in :ellc_f:ellc.f90:ellc
+                double precision intent(in) :: f
+                integer, optional,intent(in),check(len(elimpar)>=nelimpar),depend(elimpar) :: nelimpar=len(elimpar)
+                double precision dimension(nelimpar),intent(in) :: elimpar
+                double precision :: glimposb
+            end function glimposb
+        end module ellc
+    end interface 
+end python module ellc_f
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

@@ -1,0 +1,8 @@
+include *.txt
+include *.rst
+include ellc_f.pyf
+recursive-include examples *.*
+recursive-include data *.*
+recursive-include doc *.*
+recursive-include f_src *.*
+include MANIFEST.in
