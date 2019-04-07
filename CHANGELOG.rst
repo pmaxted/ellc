@@ -194,3 +194,4 @@ Version sent to A&A
 1.8.2 (2018-12-19)
 ~~~~~~~~~~~~~~~~~~
   - improved reliability of bright() function for the case exact_grav=True
+  - fix for case of exactly overlapping circles.

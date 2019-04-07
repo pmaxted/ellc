@@ -113,7 +113,7 @@ plt.xlabel("Time [d]",fontsize=fontsize)
 
 plt.tight_layout()
 if args.eps:
-  fig.savefig("DoublePartial.eps")
+  fig.savefig("power-2.eps")
 else:
   plt.show()
 

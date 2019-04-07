@@ -49,6 +49,9 @@ module ellipse
 !   y_t = tr(2,3) + tr(2,1)*x + tr(2,2)*y
 ! 
 ! HISTORY
+! Apr 2019
+!  Added check for very-nearly identical ellipses
+!
 ! Jun 2017
 !  Changed root polishing in ell_ell_roots to Maehly's procedure
 !
@@ -1041,6 +1044,8 @@ logical :: fail, new, l_left, l_right, lx1, lx2
 ! intersection as a fraction of the minimum
 ! Also used to remove duplicate intersections.
 double precision, parameter :: xytol = 1.0d-9
+! Tolerance on ellipse parameters to identify identical ellipses
+double precision, parameter :: stol = 1d-12
 
 flags = 0  ! Initialize/clear bit mask flags
 
@@ -1061,6 +1066,12 @@ if (separation <= (ellipse_2(i_ell_b_p)-ellipse_1(i_ell_a_p))) then
   flags = ibset(flags, b_ell_1_inside_2)
   return
 endif
+
+if (all(abs(ellipse_2(i_ell_ellpar)-ellipse_1(i_ell_ellpar)) < stol)) then
+  flags = ibset(flags, b_ell_identical)
+  return
+endif
+
 
 do ii = 1,3
   ! Find x-/y-values of intersection points

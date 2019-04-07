@@ -1000,6 +1000,7 @@ do iobs=0,n_obs
   ! Light travel time correction
   if (dolite) then
     t1 = time + alite1*w1
+    if (verbose >= v_debug) print '(A,E12.4)',' LTTE star 1 = ',alite1*w1
     mm = twopi*mod((t1-tperi0)/p_anom,1.0d0)
     ee = eanom(mm,ecc)
     r_1 = 1.0d0 - ecc*cos(ee)
@@ -1007,6 +1008,7 @@ do iobs=0,n_obs
     cosnu_1 = cos(true_anomaly_1) 
     sinnu_1 = sin(true_anomaly_1) 
     t2 = time + alite2*w2
+    if (verbose >= v_debug) print '(A,E12.4)',' LTTE star 2 = ',alite2*w2
     mm = twopi*mod((t2-tperi0)/p_anom,1.0d0)
     ee = eanom(mm,ecc)
     r_2 = 1.0d0 - ecc*cos(ee)
@@ -1204,6 +1206,9 @@ do iobs=0,n_obs
         endif
       else if (btest(overlap,b_ell_identical)) then
         eclipse_type = ibset(eclipse_type,b_ellc_total)
+        if (verbose >= v_debug) then
+          print *,'ellc: b_ell_identical'
+        endif
       else if (btest(overlap,b_ell_four_intersects)) then
         eclipse_type = ibset(eclipse_type,b_ellc_double_partial)
       endif

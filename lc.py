@@ -603,7 +603,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
         w_calc = np.append(w_calc, np.ones_like(t_obs_i)/(i_int-1.))
 
   lc_rv_flags = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-                n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2, 0)
+                n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2, verbose)
   if ((np.sum(np.isnan(lc_rv_flags)) > 0 )) & (verbose > 0):
     lc_dummy = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
                n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2,9)
