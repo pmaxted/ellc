@@ -1,0 +1,13 @@
+build
+__pycache__
+*.pyc
+*.egg-info
+dist
+test
+*.ipynb_checkpoints
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+pyvenv

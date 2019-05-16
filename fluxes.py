@@ -310,7 +310,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   >>> import matplotlib.pyplot as plt
   >>> t = np.arange(-0.25,0.75, 0.001)
   >>> spots_1 = [[30,180],[45,-45],[25,35],[0.2,0.8]]
-  >>> flux1,flux2 = ellc.fluxes(t,radius_1=0.1,radius_2=0.05,sbratio=0.2, \
+  >>> flux1,flux2 = ellc.fluxes(t,radius_1=0.1,radius_2=0.05,sbratio=0.2,
   ...   incl=89.95,q=0.5,ld_1='quad',ldc_1=[0.65,0.2],ld_2='lin',ldc_2=0.45,
   ...   shape_1='poly3p0',shape_2='poly1p5',spots_1=spots_1)
   >>> plt.plot(t,flux1)
@@ -372,6 +372,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   l1 = ldstr_to_ldcode.get(ldstr_1,None)
   if l1 is None:
     raise Exception("Invalid limb darkening law name")
+
   l2 = ldstr_to_ldcode.get(ldstr_2,None)
   if l2 is None:
     raise Exception("Invalid limb darkening law name")
@@ -589,33 +590,26 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
         w_calc = np.append(w_calc, np.ones_like(t_obs_i)/(i_int-1.))
 
   lc_rv_flags = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-          n_mugrid_1, mugrid_1,n_mugrid_2, verbose)
+          n_mugrid_1, mugrid_1,n_mugrid_2,mugrid_2, verbose)
 
   if (np.sum(np.isnan(lc_rv_flags)) > 0 ) & (verbose > 0):
     lc_dummy = ellc_f.ellc.lc(t_calc[j],par,ipar,spar_1,spar_2,
                n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2,9)
 
   flux1 = np.zeros(n_obs)
-  for j in range(0,len(t_calc)):
-    if np.isnan(lc_rv_flags[j,0]):
-      flux1[i_calc[j]] += lc_rv_flags[j,1]*w_calc[j]
-  t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
-  n_obs_0 = len(t_obs_0)
-  if n_obs_0 > 0 :
-    i_sort = np.argsort(t_calc)
-    t_int = t_calc[i_sort]
-    f_int = lc_rv_flags[i_sort,0]
-    flux1[n_int_array == 0 ] = np.interp(t_obs_0,t_int,f_int)
-
   flux2 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
+    flux1[i_calc[j]] += lc_rv_flags[j,1]*w_calc[j]
     flux2[i_calc[j]] += lc_rv_flags[j,2]*w_calc[j]
+
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
   if n_obs_0 > 0 :
     i_sort = np.argsort(t_calc)
     t_int = t_calc[i_sort]
-    f_int = lc_rv_flags[i_sort,0]
+    f_int = lc_rv_flags[i_sort,1]
+    flux1[n_int_array == 0 ] = np.interp(t_obs_0,t_int,f_int)
+    f_int = lc_rv_flags[i_sort,2]
     flux2[n_int_array == 0 ] = np.interp(t_obs_0,t_int,f_int)
 
   return flux1,flux2
