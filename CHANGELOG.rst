@@ -199,3 +199,7 @@ Version sent to A&A
 1.8.3 (2019-05-16)
 ~~~~~~~~~~~~~~~~~~
  - fixed bugs in fluxes.py
+ 
+1.8.4 (2019-05-17)
+~~~~~~~~~~~~~~~~~~
+ - output from fluxes() now normalized consistently with output from lc() 

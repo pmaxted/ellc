@@ -1813,8 +1813,8 @@ do iobs=0,n_obs
     endif
 
     flux_rv_flag(iobs,1) = (flux_1+flux_2+flux_3+refl_1+refl_2)/fnorm
-    flux_rv_flag(iobs,2) = flux_1+refl_1
-    flux_rv_flag(iobs,3) = flux_2+refl_2
+    flux_rv_flag(iobs,2) = (flux_1+refl_1)/fnorm
+    flux_rv_flag(iobs,3) = (flux_2+refl_2)/fnorm
     flux_rv_flag(iobs,4) = rv1
     flux_rv_flag(iobs,5) = rv2
     flux_rv_flag(iobs,6) = return_flags
