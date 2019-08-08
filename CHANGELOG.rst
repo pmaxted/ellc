@@ -203,3 +203,7 @@ Version sent to A&A
 1.8.4 (2019-05-17)
 ~~~~~~~~~~~~~~~~~~
  - output from fluxes() now normalized consistently with output from lc() 
+ 
+1.8.5 (2019-08-08)
+~~~~~~~~~~~~~~~~~~
+ - added installation hint for mac users

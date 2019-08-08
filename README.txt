@@ -5,12 +5,17 @@ ellc
 Generate light curves or radial velocity curves for a binary
 star system with the ellc light curve model. [1]_
 
-Installation of this module requires python >2.7 and numpy >1.10.0
+Installation of this module requires python 3.x and numpy. The anaconda
+distribution of python3 is recommended.
 
-To install this module linux-like systems run the following command
-$ python setup.py install 
+To install this module on linux-like systems run the following command
+$ pip install ellc
 or to install on your system if you have root access
-$ sudo  python setup.py install 
+$ sudo pip install ellc
+
+Mac OSX - you may need to add a symbolic link so that pip can find the
+correct version of gfortran, e.g., for macports users ...
+ $ ln -s /opt/local/bin/gfortran-mp-6  /opt/local/bin/gfortran  
 
 Routines in this module:
 
