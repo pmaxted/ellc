@@ -1246,7 +1246,10 @@ do iter = 1, itmax
  end do
  if (verbose >= v_warn) then
    print *,'brent: failed to converge'
+   print *, v,w,x,u
+   print *, fv,fw,fx,fu
    print *, abs(x-xm), tol1, tol2
+ endif
  xmin = x
  brent = fx
  return
