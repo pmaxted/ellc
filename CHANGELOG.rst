@@ -207,3 +207,7 @@ Version sent to A&A
 1.8.5 (2019-08-08)
 ~~~~~~~~~~~~~~~~~~
  - added installation hint for mac users
+ 
+1.8.6 (2021-01-13)
+~~~~~~~~~~~~~~~~~~
+ - added exit-with-best-guess to brent for cases where convergence fails
