@@ -17,6 +17,10 @@ Mac OSX - you may need to add a symbolic link so that pip can find the
 correct version of gfortran, e.g., for macports users ...
  $ ln -s /opt/local/bin/gfortran-mp-6  /opt/local/bin/gfortran  
 
+If you are having trouble installing and have using anaconda3 / miniconda3 and are compiing with clang, try ..
+bash $ export CONDA_BUILD_SYSROOT=$(xcrun --show-sdk-path)
+tcsh $ setenv CONDA_BUILD_SYSROOT `xcrun --show-sdk-path`
+
 Routines in this module:
 
   lc(t_obs, radius_1, radius_2, sbratio, incl, ... ) 

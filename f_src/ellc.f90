@@ -1893,7 +1893,6 @@ if (verbose >= v_user) then
   print *,'t_obs(N_obs)  = ',input_times(n_obs)
 endif
 
-
 ! Some useful variables
 time_0 = binary_pars(1)
 p_anom = binary_pars(2)

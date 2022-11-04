@@ -869,7 +869,26 @@ else
 endif
 z     =dcmplx( 1.0d0/(1.0d0+q),0.0d0)
 m=5
-roche_l1 = dble(laguerre(az,m,z))
+z = laguerre(az,m,z)
+
+if (dimag(z).eq.0.0d0) then
+  roche_l1 = dble(z)
+  return
+endif
+
+! Catch rare cases where the algorithm above converges on an imaginary root
+! Use a grid search to find a real root
+do i = 1, 99
+  tz = 0.01*i
+  z = laguerre(az,m,tz)
+  if (dimag(z).eq.0.0d0) then
+    roche_l1 = dble(z)
+    return
+  endif
+enddo
+
+print *, f, q
+roche_l1_new = bad_dble
 return
 
 end function roche_l1

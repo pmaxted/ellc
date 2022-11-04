@@ -211,3 +211,7 @@ Version sent to A&A
 1.8.6 (2021-01-13)
 ~~~~~~~~~~~~~~~~~~
  - added exit-with-best-guess to brent for cases where convergence fails
+
+1.8.7 (2022-11-04)
+~~~~~~~~~~~~~~~~~~
+ - catch and fix cases of wrong root returned in roche_l1
