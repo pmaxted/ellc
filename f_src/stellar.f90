@@ -137,6 +137,10 @@ integer :: it
 integer, parameter :: itmax = 100
 
 abcd = (/bad_dble, bad_dble, bad_dble, bad_dble/)
+a = not_set_dble
+b = not_set_dble
+c = not_set_dble
+d = not_set_dble
 
 if(verbose >= v_debug) then
   print *,'starshape: radius, q, ecc, rsep, model = ', &
@@ -177,6 +181,7 @@ case(starshape_roche_v)
 
   t = 1
   it = 0 
+  d = 0
   do while (t.gt.ttol)
     it = it + 1
     if (it > itmax) then
@@ -846,10 +851,10 @@ double precision, intent(in),optional ::  f   ! Rotation factor
 !
 !-
 double complex   ::  az(6) = (/ &
-   dcmplx(-1.d0,0.0d0),dcmplx(2.0d0,0.0d0),dcmplx(-1.d0,0.0d0), &
-   dcmplx(0.d0,0.0d0),dcmplx(0.0d0,0.0d0),dcmplx(0.d0,0.0d0) /)
-double complex   ::  z
-integer ::  m
+   dcmplx(-1.d0, 0.0d0), dcmplx(2.0d0, 0.0d0), dcmplx(-1.d0, 0.0d0), &
+   dcmplx(0.d0, 0.0d0), dcmplx(0.0d0, 0.0d0), dcmplx(0.d0, 0.0d0) /)
+double complex   ::  z, tz
+integer ::  i, m
 double precision :: fac
 
 if(q <= 0.d0) then
@@ -859,17 +864,18 @@ endif
 
 if (present(f)) then 
   fac = f**2*(1.0d0+q)
-  az(4) =dcmplx( fac + 2.0d0*q,0.0d0)
-  az(5) =dcmplx(-2.0d0*fac - q,0.0d0)
-  az(6) =dcmplx( fac          ,0.0d0)
+  az(4) =dcmplx( fac + 2.0d0*q, 0.0d0)
+  az(5) =dcmplx(-2.0d0*fac - q, 0.0d0)
+  az(6) =dcmplx( fac          , 0.0d0)
 else
-  az(4) =dcmplx( 1.0d0 + 3.0d0*q,0.0d0)
-  az(5) =dcmplx(-2.0d0 - 3.0d0*q,0.0d0)
-  az(6) =dcmplx( 1.0d0 + q      ,0.0d0)
+  az(4) =dcmplx( 1.0d0 + 3.0d0*q, 0.0d0)
+  az(5) =dcmplx(-2.0d0 - 3.0d0*q, 0.0d0)
+  az(6) =dcmplx( 1.0d0 + q      , 0.0d0)
 endif
-z     =dcmplx( 1.0d0/(1.0d0+q),0.0d0)
-m=5
-z = laguerre(az,m,z)
+
+tz = dcmplx( 1.0d0/(1.0d0+q), 0.0d0)
+m = 5
+z = laguerre(az, m, tz)
 
 if (dimag(z).eq.0.0d0) then
   roche_l1 = dble(z)
@@ -878,9 +884,9 @@ endif
 
 ! Catch rare cases where the algorithm above converges on an imaginary root
 ! Use a grid search to find a real root
-do i = 1, 99
-  tz = 0.01*i
-  z = laguerre(az,m,tz)
+do i = 1, 49
+  tz = dcmplx(0.5d0 + 0.01d0*i - 0.02d0*i*mod(i,2), 0.0d0)
+  z = laguerre(az, m, tz)
   if (dimag(z).eq.0.0d0) then
     roche_l1 = dble(z)
     return
@@ -888,7 +894,7 @@ do i = 1, 99
 enddo
 
 print *, f, q
-roche_l1_new = bad_dble
+roche_l1 = bad_dble
 return
 
 end function roche_l1

@@ -958,6 +958,8 @@ if (verbose >= v_user) print *,'Starting main calculation loop'
 
 ! Start main loop
 
+fnorm = not_set_dble
+flux_3 = not_set_dble
 do iobs=0,n_obs
 
   return_flags = return_flags_init 
