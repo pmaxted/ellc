@@ -873,7 +873,7 @@ else
   az(6) =dcmplx( 1.0d0 + q      , 0.0d0)
 endif
 
-tz = dcmplx( 1.0d0/(1.0d0+q), 0.0d0)
+tz = dcmplx( 0.5d0, 0.0d0)
 m = 5
 z = laguerre(az, m, tz)
 
