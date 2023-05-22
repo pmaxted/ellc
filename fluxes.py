@@ -124,7 +124,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
       Default is None.
 
   domdt : {None, float},  optional
-      Apsidal motion rate  [degrees/anomalistic period].
+      Apsidal motion rate  [degrees/sidereal period].
       Default is None.
 
   rotfac_1 : float, optional
