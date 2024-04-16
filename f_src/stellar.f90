@@ -19,6 +19,11 @@ module stellar
 !
 ! HISTORY
 ! -------
+! 16 Apr 2024
+! Fix for floating-point error in starshape - use variables to set interpolation
+! limit points in functions to avoid problem with some compilers in the first cal
+! to zbrent.
+!
 !  24 Feb 2017
 !   Added catch to avoid getting stuck in while loop.
 !
@@ -347,25 +352,33 @@ double precision, parameter :: tol = 1.0d-6
 ! These fractional changes in polar and equatorial radii and 
 ! fraction change in volume equivalent radius based on columns xi_p, xi_e and
 ! 10^-2V in Table 1 of James, 1964
-!
-double precision tdxip(25),tdxie(25)
+! Repeat final entry to avoid problems interpolating near limit
+double precision tdxip(26),tdxie(26)
 data tdxip/ &
  0.0000000d0,-0.0042422d0,-0.0084843d0,-0.0127265d0,-0.0169960d0, &
 -0.0212929d0,-0.0255898d0,-0.0298867d0,-0.0342383d0,-0.0385900d0, &
 -0.0429690d0,-0.0473753d0,-0.0518091d0,-0.0562976d0,-0.0607860d0, &
 -0.0653293d0,-0.0699272d0,-0.0745525d0,-0.0792510d0,-0.0840221d0, &
--0.0888390d0,-0.0927801d0,-0.0947780d0,-0.0968033d0,-0.0978160d0/ 
+-0.0888390d0,-0.0927801d0,-0.0947780d0,-0.0968033d0,-0.0978160d0, &
+-0.0978160d0/ 
 data tdxie/ &
 0.00000000d0,0.00747167d0,0.01524440d0,0.02331819d0,0.03174777d0, &
 0.04056051d0,0.04981116d0,0.05949970d0,0.06970825d0,0.08046417d0, &
 0.09190432d0,0.10408342d0,0.11713832d0,0.13117850d0,0.14642290d0, &
 0.16311785d0,0.18161914d0,0.20250151d0,0.22653128d0,0.25521375d0, &
-0.29153210d0,0.33124418d0,0.35885927d0,0.40092506d0,0.45073622d0/
+0.29153210d0,0.33124418d0,0.35885927d0,0.40092506d0,0.45073622d0, &
+0.45073622d0/
+
+! Values of a where the step-size for linear interpolation changes
+double precision, parameter :: astep1= 1.0d-2
+double precision, parameter :: astep2= 1.04d-2
+double precision, parameter :: astep3= 1.08d-2
+double precision, parameter :: astep4= 1.09d-2
 
 par(1) = frot**2 * radius**3 * (1.d0+qmass) * (1.d0-ecc**2) / (1.d0-ecc)**4
 
 a1 = 0.d0
-a2 = 1.09d-2
+a2 = astep4
 ar =  zbrent(func_n1p5,a1,a2,tol,npar,par,verbose-1)
 if(verbose >= v_debug) print *,'shape_n1p5: ar =',ar
 if (ar < 0.d0) then
@@ -378,24 +391,24 @@ if (ar < 0.d0) then
 endif
 
 ! Interpolate values of fractional changes in radius
-if(ar < 1.0d-2) then
+if(ar < astep1) then
   w = 0.2d4*ar
   ii = 1+int(w)
   w = dble(ii)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
   dxie = w*tdxie(ii) + (1.d0-w)*tdxie(ii+1)
-else if(ar < 1.04d-2) then
-  w = 0.25d4*(ar-1.0d-2)
+else if(ar < astep2) then
+  w = 0.25d4*(ar-astep1)
   dxie = (1.d0-w)*tdxie(21) + w*tdxie(22)
   dxip = (1.d0-w)*tdxip(21) + w*tdxip(22)
-else if(ar <= 1.08d-2) then
-  w = 0.5d4*(ar-1.04d-2)
+else if(ar <= astep3) then
+  w = 0.5d4*(ar-astep2)
   ii = 22+int(w)
   w = dble(ii-21)-w
   dxie = w*tdxie(ii) + (1.d0-w)*tdxie(ii+1)
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
-else if(ar <= 1.09d-2) then
-  w = ar-1.08d-2
+else if(ar <= astep4) then
+  w = ar-astep3
   dxie = (1.d0-w)*tdxie(24) + w*tdxie(25)
   dxip = (1.d0-w)*tdxip(24) + w*tdxip(25)
 else
@@ -447,26 +460,31 @@ data array/ &
 0.02613295d0,0.02590672d0,0.02566646d0,0.02540777d0,0.02512701d0, &
 0.02482182d0,0.02448562d0,0.02410966d0,0.02368468d0,0.02319031d0, &
 0.02259155d0,0.02198336d0,0.02160056d0,0.02109994d0,0.02071318d0/
+! Values of a where the step-size for linear interpolation changes
+double precision, parameter :: astep1= 1.0d-2
+double precision, parameter :: astep2= 1.04d-2
+double precision, parameter :: astep3= 1.08d-2
+double precision, parameter :: astep4= 1.09d-2
 
 if (verbose > v_debug) print *,'func_n1p5: a =', a
 
 if(a < 0.d0) then
   func_n1p5 = bad_dble
-else if(a < 1.0d-2) then
+else if(a < astep1) then
   w = a/0.05d-2
   ii = 1+int(w)
   w = dble(ii)-w
   func_n1p5 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
-else if(a < 1.04d-2) then
-  w = (a-1.0d-2)/0.04d-2
+else if(a < astep2) then
+  w = (a-astep1)/0.04d-2
   func_n1p5 = a-par(1)*((1.d0-w)*array(21) + w*array(22))
-else if(a <= 1.08d-2) then
-  w = (a-1.04d-2)/0.02d-2
+else if(a <= astep3) then
+  w = (a-astep2)/0.02d-2
   ii = 22+int(w)
   w = dble(ii-21)-w
   func_n1p5 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
-else if(a <= 1.09d-2) then
-  w = a-1.08d-2
+else if(a <= astep4) then
+  w = a-astep3
   func_n1p5 = a-par(1)*((1.d0-w)*array(24) + w*array(25))
 else
   func_n1p5 = bad_dble
@@ -498,24 +516,27 @@ double precision, parameter :: tol = 1.0d-6
 ! These fractional changes in polar and equatorial radii and 
 ! fraction change in volume equivalent radius based on columns xi_p, xi_e and
 ! 10^-2v in table 1 of James, 1964
-!
-double precision tdxip(24),tdxie(24)
+! Repeat final entry to avoid problems interpolating near limit
+double precision tdxip(25),tdxie(25)
 data tdxip/ &
  0.0000000d0,-0.0015862d0,-0.0031623d0,-0.0047471d0,-0.0063333d0, &
 -0.0079138d0,-0.0094956d0,-0.0110731d0,-0.0126667d0,-0.0142500d0, &
 -0.0158232d0,-0.0174036d0,-0.0189855d0,-0.0205674d0,-0.0221536d0, &
 -0.0237558d0,-0.0253406d0,-0.0269311d0,-0.0285232d0,-0.0291582d0, &
--0.0297919d0,-0.0301109d0,-0.0304298d0,-0.0307503d0/
+-0.0297919d0,-0.0301109d0,-0.0304298d0,-0.0307503d0,-0.0307503d0/
 data tdxie/ &
 0.00000000d0,0.00692635d0,0.01416734d0,0.02175631d0,0.02972951d0, &
 0.03812610d0,0.04700117d0,0.05640546d0,0.06641728d0,0.07712796d0, &
 0.08861727d0,0.10106498d0,0.11461754d0,0.12951130d0,0.14608118d0, &
 0.16478972d0,0.18633434d0,0.21185324d0,0.24351697d0,0.25880946d0, &
-0.27637255d0,0.28627707d0,0.29714145d0,0.30924118d0/
-
+0.27637255d0,0.28627707d0,0.29714145d0,0.30924118d0,0.30924118d0/
+! Values of a where the step-size for linear interpolation changes
+double precision, parameter :: astep1= 9.0d-4
+double precision, parameter :: astep2= 9.4d-4
+double precision, parameter :: astep3= 9.7d-4
 par(1)=frot**2 * radius**3 * (1.d0+qmass) * (1.d0-ecc**2)/(1.d0-ecc)**4
 a1 = 0.d0
-a2 = 9.7d-4
+a2 = astep3
 ar =  zbrent(func_n3p0,a1,a2,tol,npar,par,verbose-1)
 if(verbose >= v_debug) print *,'shape_n3p0: ar =',ar
 if (ar < 0.d0) then
@@ -528,20 +549,20 @@ if (ar < 0.d0) then
 endif
 
 ! Interpolate values of fractional changes in radius
-if(ar.lt.9.0d-4) then
+if(ar.lt.astep1) then
   w = ar/0.5d-4
   ii = 1+int(w)
   w = dble(ii)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
   dxie = w*tdxie(ii) + (1.d0-w)*tdxie(ii+1)
-else if(ar.lt. 9.4d-4) then
-  w = (a-9.0d-4)/0.2d-4
+else if(ar.lt. astep2) then
+  w = (a-astep1)/0.2d-4
   ii = 19+int(w)
   w = dble(ii-18)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
   dxie = w*tdxie(ii) + (1.d0-w)*tdxie(ii+1)
-else if(ar <= 9.7d-4) then
-  w = (a-9.4d-4)/0.1d-4
+else if(ar <= astep3) then
+  w = (a-astep2)/0.1d-4
   ii = 21+int(w)
   w = dble(ii-20)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
@@ -580,38 +601,45 @@ integer, intent(in)          :: npar, verbose
 double precision, intent(in) :: a, par(npar)
 
 ! Local variables
-double precision array(24)
+double precision array(25)
 integer ii
 double precision w
 ! The values in this array are 2*pi*m/3*v where m and v are from table 1 of
 ! james, 1964apj...140..552j. Return value is linear interpolation in this
 ! table multiplied by par(1) then subtracted from a
 ! out-of range values returned as bad_dble
+! Repeat final entry to avoid problems interpolating near limit
 data array/ &
 0.00307603d0,0.00304253d0,0.00300812d0,0.00297269d0,0.00293619d0, &
 0.00289851d0,0.00285958d0,0.00281926d0,0.00277739d0,0.00273384d0, &
 0.00268838d0,0.00264078d0,0.00259069d0,0.00253778d0,0.00248146d0, &
 0.00242103d0,0.00235546d0,0.00228318d0,0.00220144d0,0.00216504d0, &
-0.00212572d0,0.00210468d0,0.00208254d0,0.00205903d0/
+0.00212572d0,0.00210468d0,0.00208254d0,0.00205903d0,0.00205903d0/
 
-if (verbose > v_debug) print *,'func_n1p5: a =', a
+! Values of a where the step-size for linear interpolation changes
+double precision, parameter :: astep1= 9.0d-4
+double precision, parameter :: astep2= 9.4d-4
+double precision, parameter :: astep3= 9.7d-4
+
+if (verbose > v_debug) print *,'func_n3p0: a =', a
 
 if(a < 0.d0) then
   func_n3p0 = bad_dble
-else if(a < 9.0d-4) then
+else if(a < astep1) then
   w = a/0.5d-4
   ii = 1+int(w)
   w = dble(ii)-w
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
-else if(a < 9.4d-4) then
-  w = (a-9.0d-4)/0.2d-4
+else if(a < astep2) then
+  w = (a-astep1)/0.2d-4
   ii = 19+int(w)
   w = dble(ii-18)-w
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
-else if(a <=  9.7d-4) then
-  w = (a-9.4d-4)/0.1d-4
+else if(a <=  astep3) then
+  w = (a-astep2)/0.1d-4
   ii = 21+int(w)
   w = dble(ii-20)-w
+  print *,'DEBUG',a,astep2,astep3,w,ii,array(ii),array(ii+1) 
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
 else
   func_n3p0 = bad_dble
