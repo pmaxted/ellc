@@ -639,7 +639,6 @@ else if(a <=  astep3) then
   w = (a-astep2)/0.1d-4
   ii = 21+int(w)
   w = dble(ii-20)-w
-  print *,'DEBUG',a,astep2,astep3,w,ii,array(ii),array(ii+1) 
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
 else
   func_n3p0 = bad_dble
