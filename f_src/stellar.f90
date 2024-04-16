@@ -19,6 +19,10 @@ module stellar
 !
 ! HISTORY
 ! -------
+! 16 Apr 2024
+! Fix for floating-point error in starshape - use variables to set interpolation
+! limit points in functions.
+!
 !  24 Feb 2017
 !   Added catch to avoid getting stuck in while loop.
 !
