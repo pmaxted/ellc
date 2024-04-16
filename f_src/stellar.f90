@@ -512,10 +512,13 @@ data tdxie/ &
 0.08861727d0,0.10106498d0,0.11461754d0,0.12951130d0,0.14608118d0, &
 0.16478972d0,0.18633434d0,0.21185324d0,0.24351697d0,0.25880946d0, &
 0.27637255d0,0.28627707d0,0.29714145d0,0.30924118d0/
-
+! Values of a where the step-size for linear interpolation changes
+double precision, parameter :: astep1= 9.0d-4
+double precision, parameter :: astep2= 9.4d-4
+double precision, parameter :: astep3= 9.7d-4
 par(1)=frot**2 * radius**3 * (1.d0+qmass) * (1.d0-ecc**2)/(1.d0-ecc)**4
 a1 = 0.d0
-a2 = 9.7d-4
+a2 = astep3
 ar =  zbrent(func_n3p0,a1,a2,tol,npar,par,verbose-1)
 if(verbose >= v_debug) print *,'shape_n3p0: ar =',ar
 if (ar < 0.d0) then
@@ -528,20 +531,20 @@ if (ar < 0.d0) then
 endif
 
 ! Interpolate values of fractional changes in radius
-if(ar.lt.9.0d-4) then
+if(ar.lt.astep1) then
   w = ar/0.5d-4
   ii = 1+int(w)
   w = dble(ii)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
   dxie = w*tdxie(ii) + (1.d0-w)*tdxie(ii+1)
-else if(ar.lt. 9.4d-4) then
-  w = (a-9.0d-4)/0.2d-4
+else if(ar.lt. astep2) then
+  w = (a-astep1)/0.2d-4
   ii = 19+int(w)
   w = dble(ii-18)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
   dxie = w*tdxie(ii) + (1.d0-w)*tdxie(ii+1)
-else if(ar <= 9.7d-4) then
-  w = (a-9.4d-4)/0.1d-4
+else if(ar <= astep3) then
+  w = (a-astep2)/0.1d-4
   ii = 21+int(w)
   w = dble(ii-20)-w
   dxip = w*tdxip(ii) + (1.d0-w)*tdxip(ii+1)
@@ -594,22 +597,27 @@ data array/ &
 0.00242103d0,0.00235546d0,0.00228318d0,0.00220144d0,0.00216504d0, &
 0.00212572d0,0.00210468d0,0.00208254d0,0.00205903d0/
 
-if (verbose > v_debug) print *,'func_n1p5: a =', a
+! Values of a where the step-size for linear interpolation changes
+double precision, parameter :: astep1= 9.0d-4
+double precision, parameter :: astep2= 9.4d-4
+double precision, parameter :: astep3= 9.7d-4
+
+if (verbose > v_debug) print *,'func_n3p0: a =', a
 
 if(a < 0.d0) then
   func_n3p0 = bad_dble
-else if(a < 9.0d-4) then
+else if(a < astep1) then
   w = a/0.5d-4
   ii = 1+int(w)
   w = dble(ii)-w
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
-else if(a < 9.4d-4) then
-  w = (a-9.0d-4)/0.2d-4
+else if(a < astep2) then
+  w = (a-astep1)/0.2d-4
   ii = 19+int(w)
   w = dble(ii-18)-w
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
-else if(a <=  9.7d-4) then
-  w = (a-9.4d-4)/0.1d-4
+else if(a <=  astep3) then
+  w = (a-astep2)/0.1d-4
   ii = 21+int(w)
   w = dble(ii-20)-w
   func_n3p0 = a-par(1)*(w*array(ii) + (1.d0-w)*array(ii+1))
