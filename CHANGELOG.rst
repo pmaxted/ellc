@@ -219,3 +219,7 @@ Version sent to A&A
 1.8.8 (2023-05-22)
 ~~~~~~~~~~~~~~~~~~
  - correction to inline docs for definition of domdot
+
+1.8.9 (2024-04-16)
+~~~~~~~~~~~~~~~~~~
+ -fix to bug in starshape for some compilers due to floating point initialisation of a variable. 
