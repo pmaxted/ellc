@@ -43,7 +43,7 @@ if __name__ == '__main__':
         author='Pierre Maxted',
         author_email='p.maxted@keele.ac.uk',
         license='GNU GPLv3',
-        scripts=['bin/ellc_emcee'],
+        scripts=['bin/ellc_emcee','bin/jktellc'],
         url='http://sourceforge.net/projects/goodricke/',
         description='Light curve model for eclipsing binary stars and transiting exoplanets',
         classifiers = [

@@ -1,0 +1,755 @@
+#!/usr/bin/env python
+
+import sys
+import subprocess
+import numpy as np
+
+# Global variables (!)
+VERSION = 43          # jktebop version
+# Note the horrible bodge here of adding an extra element at the 0th element
+# so that we can use 1-based indexing for consistency with jktebop fortran code 
+V = np.full(541,-100.)             # The photometric parameters
+V[27] = -1.0e10  # Need very low values to avoid ... 
+V[28] = -1.0e10  # ... ignoring negative values.
+V[14] = 0        # Tidal angle (leave at 0 normally)
+VEXTRA = np.zeros(19)              # Extra (dependent) parametrs
+LDTYPE = np.array([0,-100,-100])   # Type of LD law for each star
+VARY = np.zeros(540, dtype=int)    # arams fixed (0) or variable (1)
+NMIN = 0                           # Number of times of minimum light
+NLR = 0                            # Number of observed light ratios
+NL3 = 0                            # Number of obsd third light values
+NECW = 0                           # Number of observed e*cos(omega)'s
+NESW = 0                           # Number of observed e*sin(omega)'s
+
+def main():
+# First output the code name and version, then check for
+# command-line arguments. If one is found, then take it to
+# be the input file name.
+    print()
+    print(f"JKTELLC  v{VERSION}   Pierre Maxted "
+        "(Keele University, UK, p.maxted@keele.ac.uk)")
+
+    if len(sys.argv) == 1:
+        print("""\
+A package for modelling the light curves of detached eclipsing binary stars
+Task 1  outputs limb and gravity darkening coefficients for given Teff and log g
+Task 2  outputs one model light curve calculated using a set of input parameters
+Task 3  finds the best fit of the model to observations  (formal errorbars only)
+Task 4  finds the best fit to the observations, sigma clips, and refits the data
+Task 5  finds global best fit, by perturbing parameters and refitting many times
+Task 6  fits observations and finds goodness of fit for several parameter values
+Task 7  finds robust reliable errors by analysing with a bootstrapping algorithm
+Task 8  finds robust errors by analysing with a Monte Carlo simulation algorithm
+Task 9  finds robust errors using Monte Carlo given significant correlated noise
+
+Usage:  'jktellc  [inputfile]' to undertake one of these tasks
+Usage:  'jktellc   newfile'    to output an empty input file for a given task
+Usage:  'jktellc     1'        to undertake Task 1 (limb darkening coefficients)
+            """)
+        sys.exit()
+
+    # Now to the main part. Check the command-line input to see
+    # what to do, and then call the appropriate subroutines.
+
+    if sys.argv[1].lower() == "newfile":
+        newfile()
+        print(" ")
+        sys.exit()
+    elif sys.argv[1] == "1":
+        task1()
+        sys.exit()
+
+    infile = sys.argv[1]
+    input_(infile)
+
+
+    # end of main()
+
+#---------------------------------------------------------------------------
+
+def newfile():   # Makes all empty input files
+    outfile = input('Enter name of input file to create >>  ')
+    task = input('Enter task number (between 2 and 9) >> ')
+    try:
+        task = int(task)
+    except ValueError:
+        print("### ERROR: did not understand input.    ")
+        print(" ")
+        sys.exit(1)
+
+    if (task < 2) | (task > 9):
+        print('"### ERROR: task integer is out of range.')
+        print(" ")
+        sys.exit(1)
+
+    try:
+        f = open(outfile,'x')
+    except FileExistsError:
+        print("### ERROR opening new  output    file: ",outfile)
+        print(" ")
+        sys.exit(1)
+
+    f.write(f"""\
+ {task}                Task to do (from 2 to 9)   Integ. ring size (deg)  
+                  Sum of the radii           Ratio of the radii      
+                  Orbital inclination (deg)  Mass ratio of system    
+                  ecosw or eccentricity      esinw or periastron long
+                  Gravity darkening (star A) Grav darkening (star B) 
+                  Surface brightness ratio   Amount of third light   
+                  LD law type for star A     LD law type for star B  
+                  LD star A (linear coeff)   LD star B (linear coeff)
+                  LD star A (nonlin coeff)   LD star B (nonlin coeff)
+                  Reflection effect star A   Reflection effect star B
+                  Phase of primary eclipse   Light scale factor (mag)
+""")
+
+    if (task >= 3) & (task <=9):
+        f.write("""\
+                  Orbital period of eclipsing binary system (days) 
+                  Reference time of primary minimum (HJD)          
+""")
+
+    if (task == 2):
+        f.write(" "*18+"Output file name (continuous character string)   ")
+    elif (task == 4):
+        f.write(" "*18+"Sigma value to reject discrepant observations    ")
+    elif (task == 5):
+        f.write(" "*18+"Number of refits for perturbed initial parameters")
+    elif (task == 7):
+        f.write(" "*18+"Number of bootstrapping simulations to do        ")
+    elif (task == 8):
+        f.write(" "*18+"Number of Monte Carlo simulations to do          ")
+
+    if (task >= 3) & (task <=9):
+        f.write("""\
+ 0  0             Adjust RADII SUM    or  RADII RATIO    (0, 1, 2, 3)
+ 0  0             Adjust INCLINATION  or  MASSRATIO      (0, 1, 2, 3)
+ 0  0             Adjust ECOSW-or-E   or  ESINW-or-OMEGA (0, 1, 2, 3)
+ 0  0             Adjust GRAVDARK1    or  GRAVDARK2      (0, 1, 2, 3)
+ 0  0             Adjust SURFBRIGHT2  or  THIRDLIGHT     (0, 1, 2, 3)
+ 0  0             Adjust LD-LIN starA or  LD-LIN starB   (0, 1, 2, 3)
+ 0  0             Adjust LD-NONLIN A  or  LD-NONLIN B    (0, 1, 2, 3)
+ 0  0             Adjust REFLECTION A or  REFLECTION B   (-1,0,1,2,3)
+ 0  0             Adjust PHASESHIFT   or  SCALE FACTOR   (0, 1, 2, 3)
+ 0  0             Adjust PERIOD       or  T(pri.ecl.)    (0, 1, 2, 3)
+                  Name of file containing light curve                
+                  Name of output parameter file                      
+""")
+
+    if (task == 3) | (task == 4):
+        f.write(" "*18+"Name of output light curve file                  \n")
+        f.write(" "*18+"Name of output model light curve fit file        \n")
+
+    if (task == 5) | (task == 7) | (task == 8) | (task == 9):
+        f.write(" "*18+"Name of output file of individual fits             \n")
+
+    f.write("""\
+  
+  
+# Enter the appropriate numbers on the left-hand side of each line of this file.
+# Most of the lines require two numerical parameters separated by spaces.       
+  
+# Put a negative number for the mass ratio to force the stars to be spherical.  
+# The mass ratio will then be irrelevant (it is only used to get deformations). 
+  
+# To fit for rA and rB instead of (rA+rB) and k, give a negative value for r1+r2
+# Then (rA+rB) will be interpreted to mean rA,  and k will be interpreted as rB.
+# The adjustment indicators will similarly refer to rA,rB rather than (rA+rB),k.
+  
+# If e < 10 then e and omega will be assumed to be e*cos(omega) and e*sin(omega)
+# If e >= 10 then e and omega will be assumed to be (e+10) and omega (degrees). 
+# The first option is in general better unless eccentricity is larger or fixed. 
+  
+# The possible entries for the type of limb darkening law are 'lin' (for linear)
+# 'quad' (quadratic), 'log' (logarithmic), 'sqrt' (square-root), 'cub' (cubic), 
+# 'pow2' (power-2), qrep (quadratic re-parameterisation) lrep (logarithmic re-  
+# parameterisation, srep (square-root re-parameterisation, crep (cubic re-param-
+#eterisation, and 'h1h2' (power-2 with the h1 and h2 parameterisation).         
+# Put 'same' for star B to force its coefficients to be equal those of star A.  
+  
+# For each adjustable parameter the adjustment integer can be 0  (parameter will
+# be fixed at the input file value),  1 (parameter will be freely adjusted),  2 
+# (parameter will be fixed for initial fit but perturbed during later analysis).
+# or  3 (adjusted in initial fit but not perturbed during Monte Carlo analysis).
+  
+# When fitting a light curve  the reflection coefficients can be calculated from
+# the system geometry  (put -1 for the adjustment integers),  held fixed (put 0)
+# or freely adjusted to fit the light curve (put 1) - useful for close binaries.
+  
+# FOUR-PARAMETER LIMB DARKENING:   you can alternatively put '4par' for the limb
+# darkening in which case the input file format differs a bit. Change the lines:
+#                   LD star A (linear coeff)   LD star B (linear coeff)         
+#                   LD star A (nonlin coeff)   LD star B (nonlin coeff)         
+# to the following lines and put in the information at the line starts as usual:
+#                   LD star A (coefficient 1) LD star B (coefficient 1)         
+#                   LD star A (coefficient 2) LD star B (coefficient 2)         
+#                   LD star A (coefficient 3) LD star B (coefficient 3)         
+#                   LD star A (coefficient 4) LD star B (coefficient 4)         
+# You also need to change the lines for the adjustment parameters from:         
+#                   Adjust LD-lin1  or  LD-lin2            (0, 1, 2, 3)         
+#                   Adjust LD-nonlin1  or  LD-nonlin2      (0, 1, 2, 3)         
+# to the following lines and put in the information at the line starts as usual:
+#                   Adjust LDcoeff-A1 or LDcoeff-B1        (0, 1, 2, 3)         
+#                   Adjust LDcoeff-A2 or LDcoeff-B2        (0, 1, 2, 3)         
+#                   Adjust LDcoeff-A3 or LDcoeff-B3        (0, 1, 2, 3)         
+#                   Adjust LDcoeff-A4 or LDcoeff-B4        (0, 1, 2, 3)         
+# Remember not to include the '#' symbol: it is used only to comment lines out. 
+# Reference for the '4par' law: Claret (2000, A&A, 363, 1081)                   
+  
+# TIMES OF MINIMUM LIGHT: add a line below the parameter line to input each one:
+#   TMIN  [cycle]  [time]  [error]                                              
+# where [cycle] is cycle number (integer for primary minimum  or integer+0.5 for
+# secondary minimum), [time] and [error] are the observed time and uncertainty. 
+  
+# LIGHT RATIO: add a line below the parameter line to input each observed one:  
+#   LRAT  [time]  [light_ratio]  [error]                                        
+# where [time] is the time(HJD) when the spectroscopic light ratio was measured,
+# [light_ratio] is its value and [error] is its measurement uncertainty.        
+  
+# MEASURED THIRD LIGHT VALUE:   include as observed constraint by adding a line:
+#   THDL  [value]  [uncertainty]                                                
+# which gives the third light measurement and its observational uncertainty.    
+  
+# MEASURED orbital shape parameters (depending on the value of eccentricity):   
+#   ECSW  [value]  [uncertainty]   (interpreted as either e*cos(omega) or e)    
+#   ENSW  [value]  [uncertainty]   (interpreted as either e*sin(omega) or omega)
+  
+# SINE AND POLYNOMIAL FITTING:   the parameters of sine curves or polynomials of
+# order 5) can be included.  You can have up to nine sines and five polynomials,
+# each acting on a specific parameter. The information for each one is specified
+# by an additional line below the main input file parameters.     Line format:  
+#   SINE  [par]  [T0]  [P]  [amp]  [vary(T0)]  [vary(P)]  [vary(amp)]           
+#   POLY  [par]  [pivot]  [const]  [x]  [x^2]  [x^3] [x^4]  [x^5]  [vary(const)]  [vary(x)]  [vary(x^2)]  [vary(x^3)]   [vary(x^4)]   [vary(x^5)]               
+# where the required parameters are given inside square brackets. [T0] is a time
+# of zero phase (HJD), [P] is period (days), [amp] is amplitude, and [x^n] are  
+# the coefficients of the polynomial.  Each parameter has a [vary()] which is 0,
+# 1, 2 or 3 to indicate how the parameter is treated.                           
+# [par] indicates the parameter to apply it to: J, r1, r2, i, L3, sf, L1, L2, e,
+# w, ec, es, T0, KA, KB, VA, VB. Here sf is the scale factor, L1 is the light   
+# from star A, L2 is the light from star B, ec is ecosw, es is esinw, T0 is the 
+# reference time of minimum, KA and KB are the velocity amplitudes of the two   
+# stars, and VA and VB are the systemtic velocities of the two stars.           
+# Note that the independent parameter is always time (either HJD or phase).     
+# If you want to apply a polynomial to only part of the data, in a specific time
+# interval, then use the following line to give the extra information:          
+#   POLY  [par]  [pivot]  [const] [x] [x^2] [x^3] [x^4] [x^5]  [vary(const)] [vary(x)] [vary(x^2)] [vary(x^3)] [vary(x^4)] [vary(x^5)]  [start-time]  [end-time]
+# JKTEBOP will check for the two extra numbers and use them automatically.      
+  
+# NUMERICAL INTEGRATION:  long exposure times can be split up into NUMINT points
+# occupying a total time interval of NINTERVAL (seconds) by including this line:
+#   NUMI  [numint]  [ninterval]                                                 
+  
+# FITTING FOR RADIAL VELOCITIES:    the observed RVs should be in separate files
+# for the two stars and the data should be in the same format as the light curve
+# data. Then add a line below the main input parameters for each RV file:       
+#   RV1  [infile]  [outfile]  [K]  [Vsys]  [vary(K)]  [vary(Vsys)]              
+#   RV2  [infile]  [outfile]  [K]  [Vsys]  [vary(K)]  [vary(Vsys)]              
+# where RV1 is for primary star velocities, RV2 is for secondary star velocities
+# [infile] is the input data file, [outfile] is the output data file, [K] is the
+# velocity amplitude of the star (km/s), [Vsys] is its systemic velocity (km/s),
+# and [vary(K)] and [vary(Vsys)] are 0 to fix and 1 to fit for these quantities.
+# The mass ratio parameter is not used for the RVs, only for the light curve.   
+# If you want to fix the systemic velocity for star B to that for star A, simply
+# set vary(Vsys) for star B to be equal to -1                                   
+  
+# ERROR BARS IN THE DATAFILES: whenever JKTEBOP reads in a set of data from file
+# it checks to see if there are three numbers on the first line.  If so, JKTEBOP
+# assumes that the datafile contains three columns (TIME, OBSERVATION, ERRORBAR)
+# and reads the data in accordingly. If it can only find two numbers, it assumes
+# that these represent TIME, OBSERVATION  and that error bars are not available.
+# If errorbars are not available, or if they are too large or too small, JKTEBOP
+# can iteratively scale them until a reduced chi-squared of 1.0 is obtained.  To
+# use this option put the word 'chif' ona line on its own below the main set of 
+# parameters.  Warning: this is available only for light curves with ten or more
+# datapoints and for RV curves with five or more datapoints. Be careful!        
+  
+  
+""")
+
+    f.close()
+    
+    # end of newfile()
+
+
+#---------------------------------------------------------------------------
+
+def task1():                # This task outputs  limb  darkening
+    # coefficients for given Teff and logg and [M/H] and Vmicro.
+    # It simply interfaces with the  JKTLD  code, which performs
+    # bilinear interpolation in Teff,logg for given [M/H],Vmicro
+    # Usage:   jktld  <Teff>  <logg>  <M/H>  <Vmicro>  <outfile>
+    teff    = float(input("Enter the effective temperature (K)  >> "))
+    logg    = float(input("Enter the surface gravity (log cm/s) >> "))
+    moh     = float(input("Enter the metal abundance  ([M/H])   >> "))
+    vmicro  = float(input("Enter the microturbulence velocity   >> "))
+    outfile = input("Enter the output file name to create >> ")
+
+    if (teff < 3500):
+        print("## Warning: a Teff below 3500 K is out "
+              "of range of most of the LD coeff tables. ")
+    elif (teff < 2000):
+        print("## Warning: a Teff below 2000 K is out "
+              "of range all the LD coefficient tables.  ")
+    elif (teff >50000):
+        print("## Warning: a Teff above 50000 K is out"
+              " of range of all LD coefficient tables.  ")
+
+    if (logg > 5) | (logg < 0):
+        print("## Warning: log(g)s outside the range 0"
+              ".0 to 5.0 are not covered in the tables. ")
+
+    if (moh != 0) & (vmicro != 2):
+        print("## Warning: for [M/H] /= 0 and Vmicro /"
+              "= 2 you will probably get no results.    ")
+    
+    subprocess.call(f"jktld {teff} {logg} {moh} {vmicro} {outfile}",shell=True)
+
+    # end of task1()
+
+#-------------------------------
+
+def input_(infile):
+    # This subroutine reads in all the input file and input data
+    # It opens several files for reading later, but the names of
+    # the files are not retained. See top for file unit numbers.
+
+    chifudge = False
+    try:
+        f = open(infile,"r")
+    except FileNotFoundError:
+        print(f"### ERROR opening old input file file:  {infile}\n\n")
+        print(" ")
+        sys.exit(1)
+
+    try:
+        t1,t2 = f.readline().split()[0:2]
+        task = int(t1)
+        V[18] = float(t2)
+    except Exception as e:
+        print("### ERROR: cannot read first line of in"
+              "put parameter file (TASK and INTRING).   ")
+        print("### Error message returned:",e)
+        print(" ")
+        sys.exit(1)
+
+    if (task < 1) | (task > 9):
+        print("### ERROR: task integer does not corres"
+              "pond to a value between 1 and 9.         ")
+        print(" ")
+        sys.exit(1)
+    
+    if (V[18] < 0.1) | (V[18] > 10):
+        if ( V[18] > -1.01) & (V[18] < -0.99):
+            raise NonImplementedError("Use jktebop for OCCULTSMALL option")
+        print("### ERROR: integration ring size must"
+              " be between 0.1 and 10.0 degrees.          ")
+        print(" ")
+        sys.exit(1)
+
+    if (task == 1):
+        print("Task 1  outputs limb and "
+               "gravity darkening coefficients for given Teff and log g")
+    if (task == 2):
+        print("Task 2  outputs one model"
+              " light curve calculated using a set of input parameters")
+    if (task == 3):
+        print("Task 3  finds the best fi"
+              "t of the model to observations  (formal errorbars only)")
+    if (task == 4):
+        print("Task 4  finds the best fi"
+              "t to the observations, sigma clips, and refits the data")
+    if (task == 5):
+        print("Task 5  finds global best"
+              " fit, by perturbing parameters and refitting many times")
+    if (task == 6):
+        print("Task 6  fits observations"
+              " and finds goodness of fit for several parameter values")
+    if (task == 7):
+        print("Task 7  finds robust reli"
+              "able errors by analysing with a bootstrapping algorithm")
+    if (task == 8):
+        print("Task 8  finds robust erro"
+              "rs by analysing with a Monte Carlo simulation algorithm")
+    if (task == 9):
+        print("Task 9  finds robust erro"
+              "rs using Monte Carlo given significant correlated noise")
+
+    status = 0
+    V[2],V[3],status = readff(f, "RADII SUM ", -0.8, 0.8, 
+                                 "RADIIRATIO",  0.0, 1.0, status)
+    if ( V[3] < 0):
+        print("### Warning: the ratio of the radii is "
+              "less than zero. If you are trying to use ")
+        print("### the option of inputting rA and rB r"
+              "ather than (rA+rB) and k=rB/rA, then you ")
+        print("### need to put a minus sign in front o"
+              "f the (rA+rB) value, not the value for k.")
+
+    V[6],V[13],status = readff(f, "INCLNATION",   50,  140, 
+                                  "MASS RATIO",    0,    1, status)
+    V[7],V[8],status  = readff(f, "ECCENTRCTY",   -1,   11, 
+                                  "OMEGA     ", -360,  360, status)
+    V[9],V[10],status = readff(f, "GRAVDARK-A",  -10,   10,  
+                                  "GRAVDARK-B",  -10,   10, status)
+    V[1],V[15],status = readff(f, "SURF-BRT-B",    0,  1e4, 
+                                  "THIRDLIGHT",    0,   10, status)
+
+    ld1,ld2 = f.readline().split()[0:2]
+
+    if ( ld1 == "lin"  ): LDTYPE[1] = 1
+    if ( ld1 == "quad" ): LDTYPE[1] = 2
+    if ( ld1 == "log"  ): LDTYPE[1] = 3
+    if ( ld1 == "sqrt" ): LDTYPE[1] = 4
+    if ( ld1 == "cub"  ): LDTYPE[1] = 5
+    if ( ld1 == "pow2" ): LDTYPE[1] = 6
+    if ( ld1 == "4par" ): LDTYPE[1] = 9
+    if ( ld1 == "qrep" ): LDTYPE[1] = -2
+    if ( ld1 == "lrep" ): LDTYPE[1] = -3
+    if ( ld1 == "srep" ): LDTYPE[1] = -4
+    if ( ld1 == "crep" ): LDTYPE[1] = -5
+    if ( ld1 == "h1h2" ): LDTYPE[1] = -6
+
+    if ( ld2 == "lin"  ): LDTYPE[2] = 1
+    if ( ld2 == "quad" ): LDTYPE[2] = 2
+    if ( ld2 == "log"  ): LDTYPE[2] = 3
+    if ( ld2 == "sqrt" ): LDTYPE[2] = 4
+    if ( ld2 == "cub"  ): LDTYPE[2] = 5
+    if ( ld2 == "pow2" ): LDTYPE[2] = 6
+    if ( ld2 == "4par" ): LDTYPE[2] = 9
+    if ( ld2 == "qrep" ): LDTYPE[2] = -2
+    if ( ld2 == "lrep" ): LDTYPE[2] = -3
+    if ( ld2 == "srep" ): LDTYPE[2] = -4
+    if ( ld2 == "crep" ): LDTYPE[2] = -5
+    if ( ld2 == "h1h2" ): LDTYPE[2] = -6
+    if ( ld2 == "same" ): LDTYPE[2] = -1
+
+    if ( LDTYPE[1] < -98 ):
+        print("### ERROR: limb darkening law for star "
+              "A should be one of: lin, quad, log, sqrt,")
+        print("### cub, pow2, 4par, qrep, lrep, srep, "
+              "crep, or h1h2.                           ")
+        status = 1
+    if ( LDTYPE[2] < -98 ):
+        print("### ERROR: limb darkening law for star "
+              "B should be one of: lin, quad, log, sqrt,")
+        print("### cub, pow2, 4par, qrep, lrep, srep, "
+              "crep, h1h2, or same.                     ")
+        status = 1
+
+    if status:
+        print(" ")
+        sys.exit(1)
+
+    if ( LDTYPE[1] != 9 ) & ( LDTYPE[2] == 9 ):
+        print("### ERROR: star B has four-parameter l "
+              "imb darkening so star A must have too.   ")
+        print(" ")
+        sys.exit(1)
+
+    if ( LDTYPE[1] != 9 ):
+        V[4], V[5], status = readff(f,"LD-lin-A  ", -1, 2, 
+                                      "LD-lin-B  ", -1, 2, status)
+        if ( LDTYPE[2] == -1 ): V[5] = V[4]
+        V[21],V[24],status = readff(f,"LDnonlin-A", -1, 2,
+                                      "LDnonlin-B", -1, 2, status)
+        if ( LDTYPE[2] == -1 ): V[24] = V[21]
+
+
+    if ( LDTYPE[1] == 9 ):
+        V[4], V[5], status = readff(f,"LDC-A-1   ", -9, 9, 
+                                      "LDC-B-1   ", -9, 9, status)
+        V[21],V[24],status = readff(f,"LDC-A-2   ", -9, 9,
+                                      "LDC-B-2   ", -9, 9, status)
+        V[22],V[25],status = readff(f,"LDC-A-3   ", -9, 9,
+                                      "LDC-B-3   ", -9, 9, status)
+        V[23],V[26],status = readff(f,"LDC-A-4   ", -9, 9,
+                                      "LDC-B-4   ", -9, 9, status)
+        if ( LDTYPE[2] == -1 ):
+            V[5] = V[4]
+            V[24] = V[21]
+            V[25] = V[22]
+            V[26] = V[23]
+
+    V[11],V[12],status = readff(f,"REFLECTN-A",-1e9, 1e9,
+                                  "REFLECTN-B",-1e9, 1e9, status)
+    V[16],V[17],status = readff(f,"PHASESHIFT",  -1,   1,
+                                  "SCALEFACTR",-1e3, 1e3, status)
+
+    if status:
+        print(" ")
+        sys.exit(1)
+
+    if ( task >= 3 ) & ( task <= 9 ):
+        V[19],status = readf(f,"PERIOD    ",   0, 1e6, status)
+        V[20],status = readf(f,"TIME-ZERO ",-3e7, 3e7, status)
+
+    if ( task == 2 ) :
+        parfile,status = readchar30(f, "OUTFILE   ",status)
+        f.close()
+        f62,status = openfile("new","lightcurve",parfile,status)
+
+    if status:
+        print(" ")
+        sys.exit(1)
+
+    if ( task == 5 ) | ( task == 7 ) | (task == 8 ):
+        try:
+            nsim = int(f.readline().split()[0])
+        except:
+            if (task==5):
+                print("### ERROR reading number of perturbed initial"
+                      " parameter sets to refit data with.")
+            if (task==7):
+                print("### ERROR reading the number of bootstrapping "
+                      "simulations to do.                ")
+          if (task==8):
+             print( "### ERROR reading the number of Monte Carlo"
+             "simulations to do.                  ")
+          status = 1
+        if (abs(nsim) < 8) | (abs(nsim) > 99999):
+            print("### ERROR: number of simulations/sets"
+                  " to do must be between +/-8 and +/-99999.  ")
+            print(" ")
+            sys.exit(1)
+        elif (task == 4):
+            try:
+                sigma = float(f.readline().split()[0])
+            except:
+                print("### ERROR reading the sigma number fo"
+                      "r rejection of discrepant data.            ")
+                status = 1
+
+    if status:
+        print(" ")
+        sys.exit(1)
+
+    if ( task >= 3 ) & ( task <= 9 ):
+        VARY[ 2],VARY[ 3],status= read2(f,"adj(rA+rB)","adj(rB/rA)",status)
+        VARY[ 6],VARY[13],status= read2(f,"adj(_INC_)","adj(MB/MA)",status)
+        VARY[ 7],VARY[ 8],status= read2(f,"adj(_ECC_)","adj(OMEGA)",status)
+        VARY[ 9],VARY[10],status= read2(f,"adj(_GD-A)","adj(_GD-B)",status)
+        VARY[ 1],VARY[15],status= read2(f,"adj(_SB-B)","adj(_L_3_)",status)
+                                
+        if ( LDTYPE[1] != 9 ): 
+            VARY[ 4],VARY[ 5],status= read2(f,"adj(LD-l1)","adj(LD-l1)",
+                                            status)
+            VARY[21],VARY[24],status= read2(f,"adj(LD-n2)","adj(LD-n2)",
+                                            status)
+        else:
+            VARY[ 4],VARY[ 5],status= read2(f,"adj(LD-A1)","adj(LD-B1)",
+                                            status)
+            VARY[21],VARY[24],status= read2(f,"adj(LD-A2)","adj(LD-B2)",
+                                            status)
+            VARY[22],VARY[25],status= read2(f,"adj(LD-A3)","adj(LD-B3)",
+                                            status)
+            VARY[23],VARY[26],status= read2(f,"adj(LD-A4)","adj(LD-B4)",
+                                            status)
+                                
+        VARY[11],VARY[12],status= read2(f,"adj(REFLA)","adj(REFLB)",status)
+        VARY[16],VARY[17],status= read2(f,"adj(PSHFT)","adj(SFACT)",status)
+        VARY[19],VARY[20],status= read2(f,"adj(PERIOD","adj(TZERO)",status)
+        obsfile,status = readchar30(f,"OBSFILE   ",status)
+        parfile,status = readchar30(f,"PARAMFILE ",status)
+        if status:
+            print(" ")
+            sys.exit(1)
+
+    if ( LDTYPE[1] == 1 ): VARY(21) = 0              # linear LD star A
+    if ( LDTYPE[2] == 1 ): VARY(24) = 0              # linear LD star B
+    if ( LDTYPE[2] == -1 ):                    # same LD for both stars
+        VARY[5] = 0
+        VARY[24] = 0
+        VARY[25] = 0
+        VARY[26] = 0
+
+    if ( VARY[20] == 1 ) & ( VARY[16] == 1 ):
+        VARY[16] = 0
+        print(">> TZERO and PSHIFT cannot both be adjusted so"
+              " adj(PSHIFT) has been set to zero.")
+
+    if ( V[13] < 0 ) & ( VARY[13] != 0 ):
+        print(">> The photometric mass ratio is equal to or less"
+              " than 0 so cannot be fitted.    ")
+        VARY[13] = 0
+        print(">> Therefore its adjustment integer has "
+              "been set to zero.                        ")
+
+    if(task==3) | (task==4) | (task==5) | (task==7) | (task==8) | (task==9):
+        lcfile,status = readchar30 (f,"LC FILE   ",lcfile, status)
+    if ( task == 3 ) | ( task==4):
+        fitfile,status = readchar30 (f,"FITFILE   ",fitfile, status)
+
+    # Read in any additional information from the input file.
+    # TMIN: time of minimum light
+    # LRAT: spectroscopic light ratio
+    # THDL: third light measurement
+    # SINE: sine curve parameters
+    # POLY: polynomial parameters
+    # ECSW: either ecosw or eccentricity (depending on V(7))
+    # ESNW: either esinw or w (omega)    (depending on V(7))
+    # RV1: radial velocities of star A
+    # RV2: radial velocities of star B
+
+    NLR = 0
+    NMIN = 0
+    a = np.zeros(7)
+    for i in range(0,9999):
+        try:
+            charhelp200 = f.readline()
+        except:
+            break
+
+        charhelp4 = charhelp200[0:4]
+
+        if charhelp4.lower() == 'chif':
+            chifudge = True
+        elif charhelp4.lower() == 'tmin':
+            try:
+               charhelp4,a[1],a[2],a[3] = charhelp200.split()[0:4]
+            except:
+                print("### ERROR reading in data for time of minimum light, "
+                      "number",NMIN+1)
+                status = 1
+
+
+
+
+
+
+
+
+
+                
+
+
+
+    # end of input_
+
+
+
+
+
+#-------------------------------
+
+def readff(f, name1, lower1, upper1, name2, lower2, upper2, status):
+    # This reads in two double precision numbers and checks if
+    # they are within given bounds. STATUS is set to 1 if error
+    # occurs and keeps its previous value if no error occurs.
+    # Return: value1, value2, status
+    try:
+        t1,t2 = f.readline().split()[0:2]
+        value1 = float(t1)
+        value2 = float(t2)
+    except:
+        print("### ERROR reading the parameters",name1,"and",name2)
+        value1, value2, status = -100., -100., 1
+
+    if (value1 < lower1) | (value1 > upper1):
+        print("### ERROR: the value of",name1,"is",value1)
+        print("The allowed range is",lower1,"to",upper1)
+        status = 1
+
+    if (value2 < lower2) | (value2 > upper2):
+        print("### ERROR: the value of",name2,"is",value2)
+        print("The allowed range is",lower2,"to",upper2)
+        status = 1
+
+    return value1, value2, status
+
+    # end of readff
+
+#-------------------------------
+
+def readf(f, name, lower, upper, status):
+    # This reads one double precision number and checks if it is
+    # within given bounds. STATUS is set to 1 if an error occurs
+    try:
+        t = f.readline().split()[0]
+        value = float(t)
+    except:
+        print("### ERROR reading the parameter",name)
+        value, status = -100., 1
+
+    if (value < lower) | (value > upper):
+        print("### ERROR: the value of",name,"is",value)
+        print("The allowed range is",lower,"to",upper)
+        status = 1
+
+    return value, status
+
+    # end of readf
+
+#-------------------------------
+
+def openfile(state, file, filename, status):
+    # Opens a file. STATUS = 1 if the action was not
+    # successful and left unchanged if the action was successful
+
+    if state == 'new': mode = 'x'
+    if state == 'old': mode = 'r'
+    try:
+        f = open(filename, mode)
+        if (state == "new"):
+            print(">> Opened",state,file,"file: ",filename)
+    except:
+        print("### ERROR opening",state,file,"file: ",filename)
+        status = 1
+    return f, status
+
+    # end of openfile
+
+#-------------------------------
+
+def readchar30(f, name, value, status):
+    # This reads in a 30-char value. STATUS is set to 1 if an
+    # error occurs and keeps its previous value if no error.
+    # ** N.B. The actual length of the string can be anything - name and
+    # comment above kept for consistency with fortran code - which is itself
+    # inconsitent as the maximum string length is 50 (in version 43).
+    try:
+        value = f.readline().split()[0]
+    except:
+        print("### ERROR reading the string",name)
+        status = 1
+
+    if (value == "#"):
+        print("### ERROR: you cannot use '#' as an out"
+              "put file name.                           ")
+        status = 1
+
+    return f, status
+
+    # end of readchar30
+
+#-------------------------------
+
+def read2(f, name1, name2, status):
+    # This reads two integers on one line and tests if both are
+    # between -1 and 3. If not then STATUS is set to 1.
+    # If there is no error then STATUS keeps its previous value.
+    try:
+        t1,t2 = f.readline().split()[0:2]
+        value1 = int(t1)
+        value2 = int(t2)
+    except:
+        print("### ERROR reading the integers",name1,"and",name2)
+        status = 1
+
+    if ( value1 < -1) | (value1 > 3):
+        print("### ERROR: adjustment integer",name1,"is",value1,
+              "and should be -1, 0, 1 or 2")
+        status = 1
+
+    if ( value2 < -1) | (value2 > 3):
+        print("### ERROR: adjustment integer",name2,"is",value2,
+              "and should be -1, 0, 1 or 2")
+        status = 1
+
+    return value1, value2, status
+
+    # end of read2
+
+#-------------------------------
+
+if __name__ == "__main__":
+    main()
