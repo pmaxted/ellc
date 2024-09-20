@@ -1,3 +1,6 @@
+N.B. ellc cannot currently be installed on python 3.12 due to the depracation of distutils. 
+If anyone can help with the migration to an alternative distribution package that can handle f2py, please let me know.
+
 ====
 ellc
 ====
@@ -5,7 +8,7 @@ ellc
 Generate light curves or radial velocity curves for a binary
 star system with the ellc light curve model. [1]_
 
-Installation of this module requires python 3.x and numpy. The anaconda
+Installation of this module requires python 3.11 and numpy. The anaconda
 distribution of python3 is recommended.
 
 To install this module on linux-like systems run the following command
