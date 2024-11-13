@@ -31,34 +31,9 @@
 
 """
 
-try:
-      from .version import __version__
-except:
-      __version__ = ''
-
-
-try:
-      from ellc.lc import lc
-except:
-      pass
-
-try:
-      from ellc.rv import rv
-except:
-      pass
-
-try:
-      from ellc.tmin import tmin
-except:
-      pass
-
-try:
-      from ellc.fluxes import fluxes
-except:
-      pass
-
-try:
-      from ellc.ldy import ldy
-except:
-      pass
-
+from .version import __version__
+from .lc import lc
+from .rv import rv
+# from .tmin import tmin
+from .fluxes import fluxes
+from . import ldy
