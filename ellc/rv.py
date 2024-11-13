@@ -1,5 +1,13 @@
 # This file is part of the ellc binary star model
 # Copyright (C) 2016 Pierre Maxted
+#
+# history:
+#
+# Modified by: ZhiXiang Zhang
+# Affiliation: Xiamen University, Department of Astronomy
+# Date: 2024-11-13
+# Description of modifications:
+# - Updated code for compatibility with Python 3.12
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +25,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import numpy as np
+import os
+import ctypes
+absdir = os.path.dirname(os.path.abspath(__file__))
+libname = os.path.join(absdir, 'libellc.so')
+lib = ctypes.cdll.LoadLibrary(libname)
 
-from ellc import ellc_f
 
 def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None, 
        t_zero = 0, period = 1,
@@ -451,7 +463,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
     rvflux = 1
     exact_grav = 0
     ipar = np.array([n1,n2,n_spots_1,n_spots_2,l1,l2,s1,s2,rvflux,exact_grav],
-      dtype=int)
+      dtype=np.int32)
 
     if ld_1 == 'mugrid':
         try:
@@ -632,19 +644,57 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
       else:
         w_calc = np.append(w_calc, np.ones_like(t_obs_i)/(i_int-1.))
 
+  c_n_obs = ctypes.c_int(n_obs)
+  c_n_mugrid_1 = ctypes.c_int(n_mugrid_1)
+  c_n_mugrid_2 = ctypes.c_int(n_mugrid_2)
+  c_verbose = ctypes.c_int(verbose)
+  lc_rv_flags = np.zeros((6, n_obs), dtype=np.float64)
 
   if flux_weighted:
-    lc_rv_flags = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-            n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2, verbose)
+    lib.lc(
+      ctypes.byref(c_n_obs),
+      t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ipar.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+      spar_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      spar_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_n_mugrid_1),
+      mugrid_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_n_mugrid_2),
+      mugrid_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_verbose),
+      lc_rv_flags.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    )
     if (np.sum(np.isnan(lc_rv_flags)) > 0 ) & (verbose > 0):
-      lc_dummy = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-            n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2, 9)
-    trv_1  = lc_rv_flags[:,3]
-    trv_2  = lc_rv_flags[:,4]
+      c_verbose9 = ctypes.c_int(9)
+      lc_dummy = np.zeros((6, n_obs), dtype=np.float64)
+      lib.lc(
+        ctypes.byref(c_n_obs),
+        t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ipar.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+        spar_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        spar_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.byref(c_n_mugrid_1),
+        mugrid_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.byref(c_n_mugrid_2),
+        mugrid_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.byref(c_verbose9),
+        lc_dummy.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+      )
+    trv_1 = lc_rv_flags[3,:]
+    trv_2 = lc_rv_flags[4,:]
   else:
-    rv = ellc_f.ellc.rv(t_calc,par,verbose)
-    trv_1  = rv[:,0]
-    trv_2  = rv[:,1]
+    c_rvs = np.zeros((2, n_obs), dtype=np.float64)
+    lib.rv(
+      ctypes.byref(c_n_obs),
+      t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_verbose),
+      c_rvs.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    )
+    trv_1 = c_rvs[0,:]
+    trv_2 = c_rvs[1,:]
 
   rv_1 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):

@@ -1,5 +1,11 @@
 # This file is part of the ellc binary star model
 # Copyright (C) 2017 Pierre Maxted
+#
+# Modified by: ZhiXiang Zhang
+# Affiliation: Xiamen University, Department of Astronomy
+# Date: 2024-11-13
+# Description of modifications:
+# - Updated code for compatibility with Python 3.12
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +23,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import numpy as np
+import os
+absdir = os.path.dirname(os.path.abspath(__file__))
+import ctypes
+libname = os.path.join(absdir, 'libellc.so')
+lib = ctypes.cdll.LoadLibrary(libname)
 
-from ellc import ellc_f
 
 def lc(t_obs, radius_1, radius_2, sbratio, incl, 
        light_3 = 0, 
@@ -425,7 +435,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
     n_spots_2 = spar_2.shape[1]
 
   ipar = np.array([n1,n2,n_spots_1,n_spots_2,l1,l2,s1,s2,1,0+exact_grav],
-      dtype=int)
+      dtype=np.int32)
 
   if ld_1 == 'mugrid':
       try:
@@ -602,22 +612,54 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
       else:
         w_calc = np.append(w_calc, np.ones_like(t_obs_i)/(i_int-1.))
 
-  lc_rv_flags = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-                n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2, verbose)
+  c_n_obs = ctypes.c_int(n_obs)
+  c_n_mugrid_1 = ctypes.c_int(n_mugrid_1)
+  c_n_mugrid_2 = ctypes.c_int(n_mugrid_2)
+  c_verbose = ctypes.c_int(verbose)
+  lc_rv_flags = np.zeros((6, n_obs), dtype=np.float64)
+
+  lib.lc(
+    ctypes.byref(c_n_obs),
+    t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+    par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+    ipar.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+    spar_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+    spar_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+    ctypes.byref(c_n_mugrid_1),
+    mugrid_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+    ctypes.byref(c_n_mugrid_2),
+    mugrid_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+    ctypes.byref(c_verbose),
+    lc_rv_flags.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+  )
   if ((np.sum(np.isnan(lc_rv_flags)) > 0 )) & (verbose > 0):
-    lc_dummy = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-               n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2,9)
+    c_verbose9 = ctypes.c_int(9)
+    lc_dummy = np.zeros((6, n_obs), dtype=np.float64)
+    lib.lc(
+      ctypes.byref(c_n_obs),
+      t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ipar.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+      spar_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      spar_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_n_mugrid_1),
+      mugrid_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_n_mugrid_2),
+      mugrid_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_verbose9),
+      lc_dummy.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    )
 
   flux = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    flux[i_calc[j]] += lc_rv_flags[j,0]*w_calc[j]
+    flux[i_calc[j]] += lc_rv_flags[0,j]*w_calc[j]
 
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
   if n_obs_0 > 0 :
     i_sort = np.argsort(t_calc)
     t_int = t_calc[i_sort]
-    f_int = lc_rv_flags[i_sort,0]
+    f_int = lc_rv_flags[0,i_sort]
     flux[n_int_array == 0 ] = np.interp(t_obs_0,t_int,f_int)
 
   return flux
