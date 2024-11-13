@@ -6,3 +6,4 @@ recursive-include data *.*
 recursive-include doc *.*
 recursive-include f_src *.*
 include MANIFEST.in
+include ellc/libellc.so

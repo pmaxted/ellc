@@ -20,6 +20,11 @@ module ellc
 !
 ! HISTORY
 ! -------
+! 2024-11-13
+!  Change lc and rv functions to "C" interfaces
+!  modified by ZhiXiang Zhang 
+!  zhangzhixiangby@163.com
+! 
 ! 30 Nov 2017
 !  Added Correia (2014A&A...570L...5C) star shape model.
 !
@@ -58,6 +63,7 @@ module ellc
 ! p.maxted@keele.ac.uk
 !
 
+use, intrinsic :: iso_c_binding, only: c_double, c_int, c_ptr, c_loc, c_f_pointer
 use constants
 use utils
 use ellipse
@@ -83,32 +89,32 @@ integer, parameter :: b_ellc_error          =16 ! Invalid input
 
 contains
 
-function lc(n_obs,                & ! Number of observations
+subroutine lc(n_obs,                & ! Number of observations
             input_times,          & ! Array of times/phases 
             binary_pars,          & ! Parameters of the binary system
             control_integers,     & ! Control integers
             spots_1, spots_2,     & ! Spot data
             n_mugrid_1, mugrid_1, & ! Limb darkening array, star 1
             n_mugrid_2, mugrid_2, & ! Limb darkening array, star 2
-            verbose)              & ! Verbosity of printed output
-            result(flux_rv_flag)
+            verbose,              & ! Verbosity of printed output
+            flux_rv_flag) bind(c, name="lc")
 implicit none
-integer, intent(in)   :: n_obs
+integer(c_int), intent(in)  :: n_obs
 !f2py integer, intent(hide), depend(input_times) :: n_obs = len(input_times)
-double precision, intent(in)  :: input_times(n_obs)
+real(c_double), intent(in)  :: input_times(n_obs)
 !f2py integer, parameter :: n_par = 39
-double precision, intent(in)  :: binary_pars(n_par)
+real(c_double), intent(in)  :: binary_pars(n_par)
 !f2py integer, parameter :: n_ipar = 10
-integer, intent(in)   :: control_integers(n_ipar)
-double precision, intent(in) :: spots_1(:,:), spots_2(:,:)
+integer(c_int), intent(in)  :: control_integers(n_ipar)
+real(c_double), intent(in)  :: spots_1(control_integers(3),4), spots_2(control_integers(4),4)
 !f2py integer, intent(hide), depend(mugrid_1) :: n_mugrid_1 = len(mugrid_1)
-integer, intent(in)   :: n_mugrid_1
-double precision, intent(in)  :: mugrid_1(n_mugrid_1)
+integer(c_int), intent(in)  :: n_mugrid_1
+real(c_double), intent(in)  :: mugrid_1(n_mugrid_1)
 !f2py integer, intent(hide), depend(mugrid_2) :: n_mugrid_2 = len(mugrid_2)
-integer, intent(in)   :: n_mugrid_2
-double precision, intent(in)  :: mugrid_2(n_mugrid_2)
-integer, intent(in)   :: verbose
-double precision :: flux_rv_flag(n_obs,6)
+integer(c_int), intent(in)  :: n_mugrid_2
+real(c_double), intent(in)  :: mugrid_2(n_mugrid_2)
+integer(c_int), intent(in)  :: verbose
+real(c_double), intent(out) :: flux_rv_flag(n_obs,6)
 !
 ! INPUT:
 ! n_obs is number of observations.
@@ -1860,23 +1866,23 @@ endif
 if (verbose >= v_user) print *, 'End ellc:lc'
 return
 
-end function lc
+end subroutine lc
 
 !------------------------------------------------------------------------------
 
-function rv(n_obs,               &  ! Number of observations
+subroutine rv(n_obs,               &  ! Number of observations
             input_times,         &  ! Array of times/phases 
             binary_pars,         &  ! Parameters of the binary system
-            verbose)             &  ! Verbosity of printed output
-            result(rv_result)
+            verbose,             &  ! Verbosity of printed output
+            rv_result) bind(c, name="rv")
 implicit none
-integer, intent(in)   :: n_obs
+integer(c_int), intent(in)  :: n_obs
 !f2py integer, intent(hide), depend(input_times) :: n_obs = len(input_times)
-double precision, intent(in)  :: input_times(n_obs)
+real(c_double), intent(in)  :: input_times(n_obs)
 !f2py integer, parameter :: n_par = 39
-double precision, intent(in)  :: binary_pars(n_par)
-integer, intent(in)   :: verbose
-double precision :: rv_result(n_obs,2)
+real(c_double), intent(in)  :: binary_pars(n_par)
+integer(c_int), intent(in)  :: verbose
+real(c_double), intent(out) :: rv_result(n_obs,2)
 
 !Local variables
 integer :: iobs
@@ -2003,7 +2009,7 @@ end do
 if (verbose >= v_user) print *, 'End ellc:rv'
 return
 
-end function rv
+end subroutine rv
 !------------------------------------------------------------------------------
 
 double precision function partial(ellipse_a, ellipse_b, ngx, fpar, nfpar, &
