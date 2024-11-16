@@ -1,5 +1,4 @@
-N.B. ellc cannot currently be installed on python 3.12 due to the depracation of distutils. 
-If anyone can help with the migration to an alternative distribution package that can handle f2py, please let me know.
+N.B. updates to allow installation under python 3.12 thanks to Zhixiang Zhang have been implemented but are not yet fully tested.
 
 ====
 ellc
