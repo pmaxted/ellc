@@ -406,7 +406,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
     spar_1 = np.zeros([1,1])
     n_spots_1 = 0
   else:
-    spar_1 = np.array(spots_1)
+    spar_1 = np.array(spots_1, order='F')
     if (spar_1.ndim != 2) or (spar_1.shape[0] != 4 ):
       raise Exception("spots_1 is not  (4, n_spots_1) array_like")
     n_spots_1 = spar_1.shape[1]
@@ -415,7 +415,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
     spar_2 = np.zeros([1,1])
     n_spots_2 = 0
   else:
-    spar_2 = np.array(spots_2)
+    spar_2 = np.array(spots_2, order='F')
     if (spar_2.ndim != 2) or (spar_2.shape[0] != 4 ):
       raise Exception("spots_2 is not  (4, n_spots_2) array_like")
     n_spots_2 = spar_2.shape[1]

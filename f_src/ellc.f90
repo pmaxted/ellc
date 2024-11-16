@@ -106,7 +106,8 @@ real(c_double), intent(in)  :: input_times(n_obs)
 real(c_double), intent(in)  :: binary_pars(n_par)
 !f2py integer, parameter :: n_ipar = 10
 integer(c_int), intent(in)  :: control_integers(n_ipar)
-real(c_double), intent(in)  :: spots_1(control_integers(3),4), spots_2(control_integers(4),4)
+real(c_double), intent(in)  :: spots_1(4,control_integers(3))
+real(c_double), intent(in)  :: spots_2(4,control_integers(4))
 !f2py integer, intent(hide), depend(mugrid_1) :: n_mugrid_1 = len(mugrid_1)
 integer(c_int), intent(in)  :: n_mugrid_1
 real(c_double), intent(in)  :: mugrid_1(n_mugrid_1)
@@ -640,6 +641,12 @@ if (n_spot_1 > 0) then
     return
   endif
 
+  if (verbose >= v_user) then
+    do i_spot = 1, n_spot_1
+      print *,'Star 1, spot ',i_spot,' : ',spots_1(:,i_spot)
+    enddo
+  endif
+
   if (ldlaw_1 < -1) then
     qldc_1(:) =  ld_quad_match(ldlaw_1, mugrid_1)
   else
@@ -690,6 +697,13 @@ if (n_spot_2 > 0) then
     endif
     return
   endif
+
+  if (verbose >= v_user) then
+    do i_spot = 1, n_spot_2
+      print *,'Star 2, spot ',i_spot,' : ',spots_2(:,i_spot)
+    enddo
+  endif
+
   if (ldlaw_2 < -1) then
     qldc_2(:) =  ld_quad_match(ldlaw_2, mugrid_2)
   else
