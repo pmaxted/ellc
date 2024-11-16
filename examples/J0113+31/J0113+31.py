@@ -97,9 +97,9 @@ def lnlike(par,
   try:
     m = -2.5*np.log10(ellc.lc(lc_kpno['HJD'], radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=sbratio_jband,f_s=f_s, f_c=f_c, ld_2='quad', a=a, 
-      ldc_2 = ldc_jband, period=period, t_zero=t_zero, n_int=n_int_kpno ,
+      ldc_2 = ldc_jband, period=period, t_zero=t_zero, n_int=n_int_kpno,
       grid_1='sparse',grid_2='sparse',
-      verbose=0)
+      verbose=0))
     res = lc_kpno['dmag']-m
     wt = 1./lc_kpno['e_dmag']**2
     zp = np.sum(res*wt)/np.sum(wt)
