@@ -42,8 +42,8 @@ def lnlike(par,
   try:
     m_tr = -2.5*np.log10(ellc.lc((lc_wasp['HJD'])[abs(ph_wasp-0.5) < 0.02], 
       radius_1=r_1, radius_2=r_2, incl=incl, sbratio=0,f_s=f_s, f_c=f_c,
-      ld_1='quad', ldc_1 = ldc_white, period=period, t_zero=t_zero ,
-      grid_1='sparse',grid_2='sparse'))
+      ld_1='quad', ldc_1 = ldc_white, period=period, t_zero=t_zero,
+      grid_1='sparse', grid_2='sparse', verbose=0))
     m[abs(ph_wasp-0.5) < 0.02] = m_tr
     res = lc_wasp['dmag']-m
     wt = 1./lc_wasp['e_dmag']**2
@@ -56,7 +56,7 @@ def lnlike(par,
     m = -2.5*np.log10(ellc.lc(lc_nites['HJD'], radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_white,
       period=period, t_zero=t_zero, n_int=n_int_nites ,
-      grid_1='sparse',grid_2='sparse') )
+      grid_1='sparse',grid_2='sparse', verbose=0) )
     res = lc_nites['dmag']-m
     wt = 1./lc_nites['e_dmag']**2
     zp = np.sum(res*wt)/np.sum(wt)
@@ -67,7 +67,8 @@ def lnlike(par,
   try:
     m = -2.5*np.log10(ellc.lc(lc_oed['HJD'], radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_iband,
-      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse'))
+      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse',
+      verbose=0))
     res = lc_oed['dmag']-m
     wt = 1./lc_oed['e_dmag']**2
     zp = np.sum(res*wt)/np.sum(wt)
@@ -78,7 +79,8 @@ def lnlike(par,
   try:
     m = -2.5*np.log10(ellc.lc(lc_byu['HJD'], radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_iband,
-      period=period, t_zero=t_zero, grid_1='sparse',grid_2='sparse' ))
+      period=period, t_zero=t_zero, grid_1='sparse',grid_2='sparse',
+      verbose=0))
     res = lc_byu['dmag']-m
     wt = 1./lc_byu['e_dmag']**2
     zp = np.sum(res*wt)/np.sum(wt)
@@ -96,7 +98,8 @@ def lnlike(par,
     m = -2.5*np.log10(ellc.lc(lc_kpno['HJD'], radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=sbratio_jband,f_s=f_s, f_c=f_c, ld_2='quad', a=a, 
       ldc_2 = ldc_jband, period=period, t_zero=t_zero, n_int=n_int_kpno ,
-      grid_1='sparse',grid_2='sparse'))
+      grid_1='sparse',grid_2='sparse',
+      verbose=0)
     res = lc_kpno['dmag']-m
     wt = 1./lc_kpno['e_dmag']**2
     zp = np.sum(res*wt)/np.sum(wt)
@@ -131,16 +134,16 @@ colnames = (str('HJD'),str('dmag'),str('e_dmag'),str('Band'))
 lc_wasp  = np.loadtxt('table5.dat',
                       dtype={'names': colnames,
                              'formats': ('f8','f4','f4','S13')})
-lc_nites = np.loadtxt('table6.dat',
+lc_nites = np.loadtxt('table6.dat', usecols=[0,1,2,4],
                       dtype={'names': colnames,
                              'formats': ('f8','f4','f4','S13')})
-lc_oed   = np.loadtxt('table7.dat',
+lc_oed   = np.loadtxt('table7.dat', usecols=[0,1,2,4],
                       dtype={'names': colnames,
                              'formats': ('f8','f4','f4','S13')})
-lc_byu   = np.loadtxt('table8.dat',
+lc_byu   = np.loadtxt('table8.dat', usecols=[0,1,2,4],
                       dtype={'names': colnames,
                              'formats': ('f8','f4','f4','S13')})
-lc_kpno  = np.loadtxt('table9.dat',
+lc_kpno  = np.loadtxt('table9.dat', usecols=[0,1,2,4],
                        dtype={'names': colnames,
                               'formats': ('f8','f4','f4','S13')})
 colnames = (str('HJD'),str('RV'),str('e_RV'),str('Inst'))
@@ -232,7 +235,7 @@ print('f_s = ',f_s ,' +/- ',np.std(samples[:,3]))
 print('f_c = ',f_c ,' +/- ',np.std(samples[:,4]))
 print('S_J = ',S_J ,' +/- ',np.std(samples[:,5]))
 print('K_1 = ',K_1 ,' +/- ',np.std(samples[:,6]))
-acor = sampler.acor
+acor = sampler.get_autocorr_time(quiet=True)
 print('r_1  autocorrelation = ',acor[0])
 print('r_2  autocorrelation = ',acor[1])
 print('incl autocorrelation = ',acor[2])
@@ -258,7 +261,8 @@ plt.xlim([-0.024,0.024])
 plt.ylim([0.35,-0.03])
 m = -2.5*np.log10(ellc.lc(ph_mod*period+t_zero, radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_white,
-      period=period, t_zero=t_zero, grid_1='sparse',grid_2='sparse' ))
+      period=period, t_zero=t_zero, grid_1='sparse',grid_2='sparse',
+      verbose=0))
 plt.plot(ph_mod,m)
 plt.text(-0.023,-0.019,'WASP')
 
@@ -268,7 +272,8 @@ plt.scatter(ph_nites   ,lc_nites['dmag']+offset,s=1)
 plt.scatter(ph_nites-1,lc_nites['dmag']+offset,s=1)
 m = -2.5*np.log10(ellc.lc(ph_mod*period+t_zero, radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_white,
-      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse'))
+      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse',
+      verbose=0))
 plt.plot(ph_mod,m+offset)
 plt.text(-0.023,offset-0.019,'NITES')
 
@@ -278,7 +283,8 @@ plt.scatter(ph_oed   ,lc_oed['dmag']+offset,s=1)
 plt.scatter(ph_oed-1,lc_oed['dmag']+offset,s=1)
 m = -2.5*np.log10(ellc.lc(ph_mod*period+t_zero, radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_iband,
-      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse'))
+      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse',
+      verbose=0))
 plt.plot(ph_mod,m+offset)
 plt.text(-0.023,offset-0.019,'OED')
 
@@ -288,7 +294,8 @@ plt.scatter(ph_byu   ,lc_byu['dmag']+offset,s=1)
 plt.scatter(ph_byu-1,lc_byu['dmag']+offset,s=1)
 m = -2.5*np.log10(ellc.lc(ph_mod*period+t_zero, radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=0,f_s=f_s, f_c=f_c, ld_1='quad', ldc_1 = ldc_iband,
-      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse'))
+      period=period, t_zero=t_zero , grid_1='sparse',grid_2='sparse',
+      verbose=0))
 plt.plot(ph_mod,m+offset)
 plt.text(-0.023,offset-0.019,'BYU')
 
@@ -299,8 +306,8 @@ plt.scatter(ph_kpno-ph_off,lc_kpno['dmag']+offset,s=1)
 t = (ph_mod+ph_off)*period+t_zero
 m = -2.5*np.log10(ellc.lc(t, radius_1=r_1, radius_2=r_2,
       incl=incl, sbratio=sbratio_jband,f_s=f_s, f_c=f_c, ld_1='quad', 
-      ldc_1 = ldc_jband, period=period, t_zero=t_zero ,
-      grid_1='sparse',grid_2='sparse'))
+      ldc_1 = ldc_jband, period=period, t_zero=t_zero,
+      grid_1='sparse',grid_2='sparse', verbose=0))
 plt.plot(ph_mod,m+offset)
 plt.text(-0.023,offset-0.019,'KPNO (Phase$-$0.533)')
 

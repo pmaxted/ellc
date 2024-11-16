@@ -442,7 +442,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
     spar_1 = np.zeros([1,1])
     n_spots_1 = 0
   else:
-    spar_1 = np.array(spots_1)
+    spar_1 = np.array(spots_1, order='F')
     if (spar_1.ndim != 2) or (spar_1.shape[0] != 4 ):
       raise Exception("spots_1 is not  (4, n_spots_1) array_like")
     n_spots_1 = spar_1.shape[1]
@@ -451,7 +451,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
     spar_2 = np.zeros([1,1])
     n_spots_2 = 0
   else:
-    spar_2 = np.array(spots_2)
+    spar_2 = np.array(spots_2, order='F')
     if (spar_2.ndim != 2) or (spar_2.shape[0] != 4 ):
       raise Exception("spots_2 is not  (4, n_spots_2) array_like")
     n_spots_2 = spar_2.shape[1]
@@ -459,6 +459,10 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
   # Copy binary parameters into an np.array
   par = np.zeros(39)
 
+  mugrid_1 = np.array([0.])
+  n_mugrid_1 = 0
+  mugrid_2 = np.array([0.])
+  n_mugrid_2 = 0
   if flux_weighted:
     rvflux = 1
     exact_grav = 0
@@ -473,9 +477,6 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
             raise Exception("failed to obtain limb darkening data from ldc_1")
         if (n_mugrid_1 < 2):
             raise Exception("ldc_1 must have at least 2 elements")
-    else:
-        mugrid_1 = np.array([0.])
-        n_mugrid_1 = 0
    
     if ld_2 == 'mugrid':
         try:
@@ -485,10 +486,6 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
             raise Exception("failed to obtain limb darkening data from ldc_2")
         if (n_mugrid_2 < 2):
             raise Exception("ldc_2 must have at least 2 elements")
-    else:
-        mugrid_2 = np.array([0.])
-        n_mugrid_2 = 0
-
 
     if (radius_1 < 0) or (radius_1 > 1):
       raise ValueError("radius_1 argument out of range")

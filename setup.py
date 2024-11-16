@@ -34,7 +34,7 @@ if __name__ == '__main__':
         author_email='p.maxted@keele.ac.uk',
         license='GNU GPLv3',
         scripts=['bin/ellc_emcee'],
-        url='http://sourceforge.net/projects/goodricke/',
+        url='https://github.com/pmaxted/ellc',
         description='Light curve model for eclipsing binary stars and transiting exoplanets',
         classifiers = [
           'Development Status :: 4 - Beta',
@@ -42,7 +42,8 @@ if __name__ == '__main__':
           'Topic :: Scientific/Engineering',
           'Programming Language :: Python',
           'Programming Language :: Fortran'],
-        install_requires=["numpy >= 1.10.0","astropy >= 1.1.1"],
+        install_requires=["numpy >= 1.10.0","astropy >= 1.1.1", "scipy", 
+                          "emcee", "corner", "matplotlib"],
         ext_modules=ext_modules,
         packages=['ellc'],
         package_data=package_data,
