@@ -1,5 +1,13 @@
 # This file is part of the ellc binary star model
 # Copyright (C) 2016 Pierre Maxted
+#
+# history:
+#
+# Modified by: ZhiXiang Zhang
+# Affiliation: Xiamen University, Department of Astronomy
+# Date: 2024-11-13
+# Description of modifications:
+# - Updated code for compatibility with Python 3.12
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,10 +25,14 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import numpy as np
+import os
+import ctypes
+absdir = os.path.dirname(os.path.abspath(__file__))
+libname = os.path.join(absdir, 'libellc.so')
+lib = ctypes.cdll.LoadLibrary(libname)
 
-from ellc import ellc_f
 
-def fluxes(t_obs, radius_1, radius_2, sbratio, incl, 
+def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None, 
        t_zero = 0, period = 1,
        a = None,
        q = 1,
@@ -40,16 +52,18 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
        ld_1=None, ld_2=None,
        shape_1='sphere', shape_2='sphere',
        spots_1=None, spots_2=None,
-       exact_grav=False, verbose=1):
-  """
-  Calculate the fluxed emitted from each star in an eclipsing binary star
+       flux_weighted=True,verbose=1):
 
-  This function calculates the fluxes using the ellc binary star model [1].
+  """
+  Calculate the radial velocity curve of a binary star
+
+  This function calculates the light curve of a binary star using the ellc
+  binary star model [1].
 
   Parameters
   ----------
   t_obs : array_like
-      Times or phases of observation. The units and time system used must be
+      Times of observation. The units and time system used must be
       consistent with t_zero and period.
 
   radius_1 : float
@@ -70,24 +84,20 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   incl : float
       Inclination in degrees.
 
-  t_zero : float, optional
-      Time (or phase) of mid-eclipse for star 1 by star 2.
+  t_zero : float
+      Time  of mid-eclipse for star 1 by star 2.
       The units and time system must be consistent with the values in t_obs.
       Default is 0.
 
-  period : float, optional
-      Orbital period of the binary or (for phased data) 1.
+  period : float
+      Orbital period of the binary in days.
       For binary systes with apsidal motion, this is the anomalistic period.
-      If light-time effect or Doppler boosting is to be calculated correctly
-      then the units of period must be days, otherwise arbitrary units can be
-      used provided that these are consistent with t_zero and t_obs.
       Default is 1.
 
-  a : {None, float}, optional
-      Semi-major axis in solar radii for calculation of light travel time
-      and Doppler boosting.
+  a : float
+      Semi-major axis in solar radii.
 
-  q : float, optional
+  q : float
       Mass ratio m_2/m_1.
       Default is 1.
 
@@ -157,18 +167,19 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
       
   heat_1 : {None, scalar, 3-tuple of floats}, optional
       If scalar, coefficient of simplified reflection model - see Notes.
-      If 3-tuple, parameters of heating+reflection model [H_0, H_1, u_H]
+      If 3-tuple, parameters of heating+reflection model, [H_0, H_1, u_H]
       H_0 is the coefficient, H_1 is the exponent and u_H is the linear
       limb-darkening coefficient.
+      N.B. flux_weighted cannot be combined with simplified reflection
       Default is None.
   
   heat_2 : {None, scalar, 3-tuple of floats}, optional
       If scalar, coefficient of simplified reflection model - see Notes.
-      If 3-tuple, parameters of heating+reflection model [H_0, H_1, u_H]
+      If 3-tuple, parameters of heating+reflection model, [H_0, H_1, u_H]
       H_0 is the coefficient, H_1 is the exponent and u_H is the linear
       limb-darkening coefficient.
+      N.B. flux_weighted cannot be combined with simplified reflection
       Default is None.
-  
   
   lambda_1 : {None, float},  optional
        Sky-projected angle between orbital and rotation axes, star 1 [degrees]
@@ -182,12 +193,12 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
 
   vsini_1  : {None, float}, optional
       V_rot.sini for calculation of R-M effect for star 1 [km/s]
-      Not used for this routine, but kept for consistency with lc.py and rv.py
+      See notes below.
       Default is None.
 
   vsini_2  : {None, float}, optional
       V_rot.sini for calculation of R-M effect for star 2 [km/s]
-      Not used for this routine, but kept for consistency with lc.py and rv.py
+      See notes below.
       Default is None.
 
   t_exp : {None, float, array_like}, optional
@@ -212,6 +223,24 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
       Grid size used to calculate the flux from star 2.
       Default is "default"
 
+  ldc_1 : {None, float, or array_like}, optional
+      Limb darkening coefficients for star 1.
+      Number of elements must match the selected limb-darkening law.
+      For the option ld_1='mugrid', ldc_1 is a grid of specific
+      intensity values on a unform grid from mu=0 (first element) to mu=1
+      (last element). The specific intensies are assumed to be normalised,
+      i.e., ldc_1[-1] = 1, but this is not checked.
+      Default is None
+
+  ldc_2 : {None, float, or array_like}, optional
+      Limb darkening coefficients for star 2.
+      Number of elements must match the selected limb-darkening law.
+      For the option ld_2='mugrid', ldc_2 is a grid of specific
+      intensity values on a unform grid from mu=0 (first element) to mu=1
+      (last element). The specific intensies are assumed to be normalised,
+      i.e., ldc_2[-1] = 1, but this is not checked.
+      Default is None
+
   ld_1 : {None, "lin", "quad", "sing", "claret", "log", "sqrt", "exp",
           "power-2", "mugrid"} 
    Limb darkening law for star 1
@@ -231,11 +260,11 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
    See ld_1 for description of the power-2 and mugrid options.
    Default is None
 
-  shape_1 : {"roche_v", "roche", "sphere", "poly1p5", "poly3p0", "love"}
+  shape_1 : {"roche", "roche_v", "sphere", "poly1p5", "poly3p0", "love"}
       Model used to calculate the shape of star 1 - see Notes. 
       Default is "sphere".
 
-  shape_2 : {"roche_v", "roche", "sphere", "poly1p5", "poly3p0", "love"}
+  shape_2 : {"roche", "roche_v", "sphere", "poly1p5", "poly3p0", "love"}
       Model used to calculate the shape of star 2 - see Notes. 
       Default is "sphere".
 
@@ -249,15 +278,19 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
    are latitude, longitude, size and brightness factor. All three angles are
    in degrees.
 
-  exact_grav : {True|False}
-    Use point-by-point calculation of local surface gravity for calculation of
-    gravity darkening is True, otherwise use (much faster) approximation based
-    on functional form fit to local gravity at 4 points on the star.
+  flux_weighted : {True, False}, optional
+      If True then the flux-weighted radial velocity integrated over the
+      visible surface of each star is returned. 
+      If False then the radial velocity of the centre-of-mass of each star is
+      returned.
+      Default: True
+      N.B. flux_weighted cannot be combined with simplified reflection
 
   Returns
   -------
-  flux1, flux2, : ndarray, ndarray
-      Fluxes from star 1 and star 2, respectively, in arbitrary units.
+  rv_1, rv_2, : ndarray, ndarray
+    Radial velocities of the two stars relative to the centre-of-mass in
+    the binary in km/s.
 
   Notes
   -----
@@ -268,54 +301,68 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   (rotation period = orbital period) not pseudo-synchronous rotation rate.
 
     The effect of the spot on the light curve is calculated using the
-   algorithm by Eker [2] for circular spots on a spherical star with
-   quadratic limb darkening. If the limb-darkening law used for the main
-   calculation is not linear or quadratic then the coefficients of the
-   limb-darkening law used for the calculation of the effects of the spots
-   are set so that the intensity distribution matches at mu = 0, 0.5 and 1.
+  algorithm by Eker [2] for circular spots on a spherical star with
+  quadratic limb darkening. If the limb-darkening law used for the main
+  calculation is not linear or quadratic then the coefficients of the
+  limb-darkening law used for the calculation of the effects of the spots
+  are set so that the intensity distribution matches at mu = 0, 0.5 and 1.
 
-    N.B. The effect of each spot on the light curve is additive so overlapping
-   spots can result in non-physical negative fluxes for some regions of the
-   star.
+   N.B. The effect of each spot on the light curve is additive so overlapping
+  spots can result in non-physical negative fluxes for some regions of the
+  star.
  
-    For the calculation of the star shape, the rotation and orbital angular
-   momentum vectors are assumed parallel. The shape of each star is
-   approximated by a triaxial ellipsoid with semi-major axes (A,B,C) and
-   offset towards companion, D, from the centre-of-mass of the star towards
-   the companion star. For the option "roche" the definition of the Roche
-   potential from Wilson [3] is used and the values of A, B, C, D are set to
-   that intersection points of the triaxial ellipsoid with x-, y- and z-axes
-   lie on an equipotential surface. For the options "poly1p5" and "poly3p0"
-   the star is assumed to behave as a polytrope with index n=1.5 or n=3,
-   respectively. The tidal and rotational distortion of the polytrope are 
-   assumed to be independent. The tidal distortion for polytropes is from
-   Chandrasekhar [4] and the rotational distortion is calculated by
-   interpolation in Table 1 of James [5]. 
+   For the calculation of the star shape, the rotation and orbital angular
+  momentum vectors are assumed parallel. The shape of each star is
+  approximated by a triaxial ellipsoid with semi-major axes (A,B,C) and
+  offset towards companion, D, from the centre-of-mass of the star towards
+  the companion star. For the option "roche" the definition of the Roche
+  potential from Wilson [3] is used and the values of A, B, C, D are set to
+  that intersection points of the triaxial ellipsoid with x-, y- and z-axes
+  lie on an equipotential surface. For the options "poly1p5" and "poly3p0"
+  the star is assumed to behave as a polytrope with index n=1.5 or n=3,
+  respectively. The tidal and rotational distortion of the polytrope are 
+  assumed to be independent. The tidal distortion for polytropes is from
+  Chandrasekhar [4] and the rotational distortion is calculated by
+  interpolation in Table 1 of James [5]. For the option "love" the shape of
+  the star is calculated using equation (10) and (11) from Correia [6] using
+  the fluid second Love number for radial displacement, h_f (Correia equation
+  (8)). The offset, D, is calculated using the approximation D=q.(R/d)^4,
+  i.e., equation (38) from Chandrasekhar [4] with Delta_3=1 and nu = radius/d, 
+  where d is the separation of the stars and q is the mass ratio.
 
-    In eccentric orbits, the volume of the star is assumed to be constant. In
-   general, the volume is calculated from the volume of the approximating
-   ellipsoid. In the case of synchronous rotation, the volume of the star can
-   be calculated using equation (2.18) from Kopal "Dynamics of Close Binary
-   Systems" (Springer, 1978) by selecting the star shape model "roche_v".
+   In eccentric orbits, the volume of the star is assumed to be constant. In
+  general, the volume is calculated from the volume of the approximating
+  ellipsoid. In the case of synchronous rotation, the volume of the star can
+  be calculated using equation (2.18) from Kopal "Dynamics of Close Binary
+  Systems" (Springer, 1978) by selecting the star shape model "roche_v".
+   
+   The simplified reflection model is approximately equivalent to Lambert
+  law scattering with the coefficients heat_1 and heat_2  being equal to
+  A_g/2, where A_g is the geometric albedo.
     
-    The simplified reflection model is approximately equivalent to Lambert
-   law scattering with the coefficients heat_1 and heat_2  being equal to
-   A_g/2, where A_g is the geometric albedo.
     
-
   Example
   -------
+
+  Illustrates how to calculate and plot radial velocity as a function of 
+  orbital phase both with and without flux-weighting.
+
   >>> import ellc
   >>> import numpy as np
   >>> import matplotlib.pyplot as plt
-  >>> t = np.arange(-0.25,0.75, 0.001)
-  >>> spots_1 = [[30,180],[45,-45],[25,35],[0.2,0.8]]
-  >>> flux1,flux2 = ellc.fluxes(t,radius_1=0.1,radius_2=0.05,sbratio=0.2,
-  ...   incl=89.95,q=0.5,ld_1='quad',ldc_1=[0.65,0.2],ld_2='lin',ldc_2=0.45,
-  ...   shape_1='poly3p0',shape_2='poly1p5',spots_1=spots_1)
-  >>> plt.plot(t,flux1)
-  >>> plt.plot(t,flux2)
-  >>> plt.plot(t,flux1+flux2)
+  >>> period = 1.5 
+  >>> phase = np.arange(-0.25,0.75, 0.001)
+  >>> time = phase*period
+  >>> frv1,frv2 = ellc.rv(time,radius_1=0.1,radius_2=0.05,sbratio=0.2,
+  ...  incl=89.95,q=0.5,a=10,ld_1='quad',ldc_1=[0.65,0.2],ld_2='lin',
+  ...  ldc_2=0.45,t_zero=0, period=period)
+  >>> rv1,rv2 = ellc.rv(time,radius_1=0.1,radius_2=0.05,sbratio=0.2,
+  ...  incl=89.95,q=0.5,a=10,ld_1='quad',ldc_1=[0.65,0.2],ld_2='lin',
+  ...  ldc_2=0.45,t_zero=0, period=period,flux_weighted=False)
+  >>> plt.plot(phase,frv1)
+  >>> plt.plot(phase,frv2)
+  >>> plt.plot(phase,rv1,'--')
+  >>> plt.plot(phase,rv2,':')
   >>> plt.show()
 
   References
@@ -372,7 +419,6 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   l1 = ldstr_to_ldcode.get(ldstr_1,None)
   if l1 is None:
     raise Exception("Invalid limb darkening law name")
-
   l2 = ldstr_to_ldcode.get(ldstr_2,None)
   if l2 is None:
     raise Exception("Invalid limb darkening law name")
@@ -410,55 +456,140 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
       raise Exception("spots_2 is not  (4, n_spots_2) array_like")
     n_spots_2 = spar_2.shape[1]
 
-  ipar = np.array([n1,n2,n_spots_1,n_spots_2,l1,l2,s1,s2,1,0],
-      dtype=int)
-
-  if ld_1 == 'mugrid':
-      try:
-          mugrid_1 = np.array(ldc_1)
-          n_mugrid_1 = len(mugrid_1)
-      except:
-          raise Exception("failed to obtain limb darkening data from ldc_1")
-      if (n_mugrid_1 < 2):
-          raise Exception("ldc_1 must have at least 2 elements")
-  else:
-      mugrid_1 = np.array([0.])
-      n_mugrid_1 = 0
-
-  if ld_2 == 'mugrid':
-      try:
-          mugrid_2 = np.array(ldc_2)
-          n_mugrid_2 = len(mugrid_2)
-      except:
-          raise Exception("failed to obtain limb darkening data from ldc_2")
-      if (n_mugrid_2 < 2):
-          raise Exception("ldc_2 must have at least 2 elements")
-  else:
-      mugrid_2 = np.array([0.])
-      n_mugrid_2 = 0
-
-
   # Copy binary parameters into an np.array
-
-  if (radius_1 < 0) or (radius_1 > 1):
-    raise ValueError("radius_1 argument out of range")
-  if (radius_1 == 1) and (shape_1 != "roche"):
-    raise ValueError("radius_1=1 only allowed for Roche potential")
-
-  if (radius_2 < 0) or (radius_2 > 1):
-    raise ValueError("radius_2 argument out of range")
-  if (radius_2 == 1) and (shape_2 != "roche"):
-    raise ValueError("radius_2=1 only allowed for Roche potential")
-
   par = np.zeros(39)
+
+  if flux_weighted:
+    rvflux = 1
+    exact_grav = 0
+    ipar = np.array([n1,n2,n_spots_1,n_spots_2,l1,l2,s1,s2,rvflux,exact_grav],
+      dtype=np.int32)
+
+    if ld_1 == 'mugrid':
+        try:
+            mugrid_1 = np.array(ldc_1)
+            n_mugrid_1 = len(mugrid_1)
+        except:
+            raise Exception("failed to obtain limb darkening data from ldc_1")
+        if (n_mugrid_1 < 2):
+            raise Exception("ldc_1 must have at least 2 elements")
+    else:
+        mugrid_1 = np.array([0.])
+        n_mugrid_1 = 0
+   
+    if ld_2 == 'mugrid':
+        try:
+            mugrid_2 = np.array(ldc_2)
+            n_mugrid_2 = len(mugrid_2)
+        except:
+            raise Exception("failed to obtain limb darkening data from ldc_2")
+        if (n_mugrid_2 < 2):
+            raise Exception("ldc_2 must have at least 2 elements")
+    else:
+        mugrid_2 = np.array([0.])
+        n_mugrid_2 = 0
+
+
+    if (radius_1 < 0) or (radius_1 > 1):
+      raise ValueError("radius_1 argument out of range")
+    if (radius_1 == 1) and (shape_1 != "roche"):
+      raise ValueError("radius_1=1 only allowed for Roche potential")
+
+    if (radius_2 < 0) or (radius_2 > 1):
+      raise ValueError("radius_2 argument out of range")
+    if (radius_2 == 1) and (shape_2 != "roche"):
+      raise ValueError("radius_2=1 only allowed for Roche potential")
+
+    par[0] = t_zero
+    par[1] = period
+    par[2] = sbratio
+    par[3] = radius_1
+    par[4] = radius_2
+    par[5] = incl
+   
+    ld_to_n  = {
+      "none"   :  0,
+      "lin"    :  1,
+      "quad"   :  2,
+      "sing"   :  3,
+      "claret" :  4,
+      "log"    :  2,
+      "sqrt"   :  2,
+      "exp"    :  2,
+      "power-2":  2,
+      "mugrid" :  0 
+    }
+    ld_n_1 = ld_to_n.get(ldstr_1,None)
+    try: 
+        if (ld_n_1 > 0): 
+            par[11:11+ld_n_1] = ldc_1
+    except:
+      raise Exception("ldc_1 and ld_1 are inconsistent")
+    ld_n_2 = ld_to_n.get(ldstr_2,None)
+    try: 
+        if (ld_n_2 > 0): 
+            par[15:15+ld_n_2] = ldc_2
+    except:
+      raise Exception("ldc_2 and ld_2 are inconsistent")
+
+    if gdc_1 is not None : par[19] = gdc_1
+    if gdc_2 is not None : par[20] = gdc_2
+   
+    par[23] = rotfac_1
+    par[24] = rotfac_2
+   
+    if bfac_1 is not None : par[25] = bfac_1
+    if bfac_2 is not None : par[26] = bfac_2
+   
+    if heat_1 is not None : 
+      t = np.array(heat_1)
+      if t.size == 1:
+        par[27] = t
+        if (flux_weighted):
+          raise Exception("Cannot calculate flux-weighted RV for simple reflection")
+      elif t.size == 3:
+        par[27:30] = t
+      else:
+        raise Exception('Invalid size for array heat_1')
+   
+    if heat_2 is not None : 
+      t = np.array(heat_2)
+      if t.size == 1:
+        par[30] = t
+        if (flux_weighted):
+          raise Exception("Cannot calculate flux-weighted RV for simple reflection")
+      elif t.size == 3:
+        par[30:33] = t
+      else:
+        raise Exception('Invalid size for array heat_2')
+   
+    if lambda_1 is not None : par[33] = lambda_1
+    if lambda_2 is not None : par[34] = lambda_2
+   
+    if vsini_1 is not None : par[35] = vsini_1
+    if vsini_2 is not None : par[36] = vsini_2
+
+    if shape_1 == "love":
+      if rotfac_1 != 1:
+        raise Exception(
+                  'Non-synchronous rotation not implemented for shape_1="love"')
+      if (hf_1 <= 2/3.) or (hf_1 > 5):
+          raise Exception('Invalid value for hf_1')
+      par[37] = hf_1
+   
+    if shape_2 == "love":
+      if rotfac_2 != 1:
+        raise Exception(
+                  'Non-synchronous rotation not implemented for shape_2="love"')
+      if (hf_2 <= 2/3.) or (hf_2 > 5):
+          raise Exception('Invalid value for hf_2')
+      par[38] = hf_2
+
+
+
   par[0] = t_zero
   par[1] = period
-  par[2] = sbratio
-  par[3] = radius_1
-  par[4] = radius_2
   par[5] = incl
-
-  if a is not None : par[7] = a
 
   if (f_c is None) and (f_s is None): 
     pass
@@ -468,93 +599,17 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   else:
     raise Exception("Must specify both f_c and f_s or neither.")
 
+  if a <= 0 :
+    raise ValueError("Semi-major axis a be positive.")
+  par[7] = a
+  
   if q <= 0 :
     raise ValueError("Mass ratio q must be positive.")
   par[10] = q
   
-  ld_to_n  = {
-    "none"   :  0,
-    "lin"    :  1,
-    "quad"   :  2,
-    "sing"   :  3,
-    "claret" :  4,
-    "log"    :  2,
-    "sqrt"   :  2,
-    "exp"    :  2,
-    "power-2":  2,
-    "mugrid" :  0 
-  }
-  ld_n_1 = ld_to_n.get(ldstr_1,None)
-  try: 
-      if (ld_n_1 > 0): 
-          par[11:11+ld_n_1] = ldc_1
-  except:
-    raise Exception("ldc_1 and ld_1 are inconsistent")
-  ld_n_2 = ld_to_n.get(ldstr_2,None)
-  try: 
-      if (ld_n_2 > 0): 
-          par[15:15+ld_n_2] = ldc_2
-  except:
-    raise Exception("ldc_2 and ld_2 are inconsistent")
-
-
-  if gdc_1 is not None : par[19] = gdc_1
-
-  if gdc_2 is not None : par[20] = gdc_2
-
   if didt is not None : par[21] = didt
 
   if domdt is not None : par[22] = domdt
-
-  par[23] = rotfac_1
-
-  par[24] = rotfac_2
-
-  if bfac_1 is not None : par[25] = bfac_1
-
-  if bfac_2 is not None : par[26] = bfac_2
-
-  if heat_1 is not None : 
-    t = np.array(heat_1)
-    if t.size == 1:
-      par[27] = t
-    elif t.size == 3:
-      par[27:30] = t
-    else:
-      raise Exception('Invalid size for array heat_1')
-
-  if heat_2 is not None : 
-    t = np.array(heat_2)
-    if t.size == 1:
-      par[30] = t
-    elif t.size == 3:
-      par[30:33] = t
-    else:
-      raise Exception('Invalid size for array heat_2')
-
-  if lambda_1 is not None : par[33] = lambda_1
-
-  if lambda_2 is not None : par[34] = lambda_2
-
-  if vsini_1 is not None : par[35] = vsini_1
-
-  if vsini_2 is not None : par[36] = vsini_2
-
-  if shape_1 == "love":
-    if rotfac_1 != 1:
-      raise Exception(
-                'Non-synchronous rotation not implemented for shape_1="love"')
-    if (hf_1 <= 2/3.) or (hf_1 > 5):
-        raise Exception('Invalid value for hf_1')
-    par[37] = hf_1
-
-  if shape_2 == "love":
-    if rotfac_2 != 1:
-      raise Exception(
-                'Non-synchronous rotation not implemented for shape_2="love"')
-    if (hf_2 <= 2/3.) or (hf_2 > 5):
-        raise Exception('Invalid value for hf_2')
-    par[38] = hf_2
 
   t_obs_array = np.array(t_obs)
   n_obs = len(t_obs_array)
@@ -589,29 +644,80 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
       else:
         w_calc = np.append(w_calc, np.ones_like(t_obs_i)/(i_int-1.))
 
-  lc_rv_flags = ellc_f.ellc.lc(t_calc,par,ipar,spar_1,spar_2,
-          n_mugrid_1, mugrid_1,n_mugrid_2,mugrid_2, verbose)
+  c_n_obs = ctypes.c_int(n_obs)
+  c_n_mugrid_1 = ctypes.c_int(n_mugrid_1)
+  c_n_mugrid_2 = ctypes.c_int(n_mugrid_2)
+  c_verbose = ctypes.c_int(verbose)
+  lc_rv_flags = np.zeros((6, n_obs), dtype=np.float64)
 
-  if (np.sum(np.isnan(lc_rv_flags)) > 0 ) & (verbose > 0):
-    lc_dummy = ellc_f.ellc.lc(t_calc[j],par,ipar,spar_1,spar_2,
-               n_mugrid_1, mugrid_1,n_mugrid_2, mugrid_2,9)
+  if flux_weighted:
+    lib.lc(
+      ctypes.byref(c_n_obs),
+      t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ipar.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+      spar_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      spar_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_n_mugrid_1),
+      mugrid_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_n_mugrid_2),
+      mugrid_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_verbose),
+      lc_rv_flags.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    )
+    if (np.sum(np.isnan(lc_rv_flags)) > 0 ) & (verbose > 0):
+      c_verbose9 = ctypes.c_int(9)
+      lc_dummy = np.zeros((6, n_obs), dtype=np.float64)
+      lib.lc(
+        ctypes.byref(c_n_obs),
+        t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ipar.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+        spar_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        spar_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.byref(c_n_mugrid_1),
+        mugrid_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.byref(c_n_mugrid_2),
+        mugrid_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.byref(c_verbose9),
+        lc_dummy.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+      )
+    trv_1 = lc_rv_flags[3,:]
+    trv_2 = lc_rv_flags[4,:]
+  else:
+    c_rvs = np.zeros((2, n_obs), dtype=np.float64)
+    lib.rv(
+      ctypes.byref(c_n_obs),
+      t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+      ctypes.byref(c_verbose),
+      c_rvs.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    )
+    trv_1 = c_rvs[0,:]
+    trv_2 = c_rvs[1,:]
 
-  flux1 = np.zeros(n_obs)
-  flux2 = np.zeros(n_obs)
+  rv_1 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    flux1[i_calc[j]] += lc_rv_flags[j,1]*w_calc[j]
-    flux2[i_calc[j]] += lc_rv_flags[j,2]*w_calc[j]
-
+    rv_1[i_calc[j]] += trv_1[j]*w_calc[j]
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
   if n_obs_0 > 0 :
     i_sort = np.argsort(t_calc)
     t_int = t_calc[i_sort]
-    f_int = lc_rv_flags[i_sort,1]
-    flux1[n_int_array == 0 ] = np.interp(t_obs_0,t_int,f_int)
-    f_int = lc_rv_flags[i_sort,2]
-    flux2[n_int_array == 0 ] = np.interp(t_obs_0,t_int,f_int)
+    rv_int = trv_1[i_sort]
+    rv_1[n_int_array == 0 ] = np.interp(t_obs_0,t_int,rv_int)
 
-  return flux1,flux2
+  rv_2 = np.zeros(n_obs)
+  for j in range(0,len(t_calc)):
+    rv_2[i_calc[j]] += trv_2[j]*w_calc[j]
+  t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
+  n_obs_0 = len(t_obs_0)
+  if n_obs_0 > 0 :
+    i_sort = np.argsort(t_calc)
+    t_int = t_calc[i_sort]
+    rv_int = trv_2[i_sort]
+    rv_2[n_int_array == 0 ] = np.interp(t_obs_0,t_int,rv_int)
+
+  return rv_1,rv_2
  
 
