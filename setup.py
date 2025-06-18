@@ -6,25 +6,15 @@ from setuptools.command.build_ext import build_ext
 # from os.path import join
 
 
-def run_make():
-  subprocess.check_call(['make'])
-  subprocess.check_call(['make', 'install'])
-
-
-def configuration(parent_package='', top_path=None):
-  run_make()
-
-  package_data = {
-    'ellc': ['data/*', 'doc/*', 'examples/*']
-  }
-
-  return [], package_data
-
 class CustomBuildExt(build_ext):
     def run(self):
         subprocess.check_call(['make'])
-        subprocess.check_call(['make', 'install'])
+        lib_path = os.path.abspath('libellc.so')
+        target_dir = os.path.join(self.build_lib, 'ellc')
+        self.mkpath(target_dir)
+        shutil.copy2(lib_path, target_dir)
         super().run()
+
 
 if __name__ == '__main__':
     setuptools.setup(
@@ -46,7 +36,7 @@ if __name__ == '__main__':
                           "emcee", "corner", "matplotlib"],
         packages=['ellc'],
         package_data={
-            'ellc': ['data/*', 'doc/*', 'examples/*']
+            'ellc': ['libellc.so', 'data/*', 'doc/*', 'examples/*']
         },
         include_package_data=True,
         cmdclass={
