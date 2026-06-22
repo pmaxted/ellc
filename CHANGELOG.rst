@@ -1,3 +1,8 @@
+1.8.11 (2025-06-22)
+~~~~~~~~~~~~~~~~~~~
+ - reduce initial search range for brent on line 1608 of stellar.f90 to avoid
+   bug where wrong theta value is found for some (extreme) cases.
+
 1.8.11 (2024-11-16)
 ~~~~~~~~~~~~~~~~~~~
  - CHANGELOG.rst entries now with most recent changes at the top.

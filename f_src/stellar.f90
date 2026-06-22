@@ -1605,8 +1605,8 @@ theta_0 = halfpi - omega ! True anomaly at superior conjunction
 if (verbose >= v_debug) print *,'t_ecl_to_peri: theta_0 = ',theta_0
 if (incl /= halfpi) then
  par = (/ efac, sin2i, omega, ecc /)
- d =  brent(theta_0-halfpi,theta_0,theta_0+halfpi, delta_func, npar, par, tol, &
-            theta, verbose1)
+ d =  brent(theta_0-halfpi/2,theta_0,theta_0+halfpi/2, delta_func, npar, par, &
+            tol, theta, verbose1)
 else
   theta = theta_0
 endif
