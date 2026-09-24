@@ -4,6 +4,8 @@ __pycache__
 *.so
 *.mod
 *.egg-info
+*.so
+*.mod
 dist
 test
 *.ipynb_checkpoints
