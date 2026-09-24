@@ -622,7 +622,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
 
   if (np.sum(np.isnan(lc_rv_flags)) > 0 ) & (verbose > 0):
     c_verbose9 = ctypes.c_int(9)
-    lc_dummy = np.zeros((6, t_calcn_obs), dtype=np.float64)
+    lc_dummy = np.zeros((6, len(t_calc)), dtype=np.float64)
     lib.lc(
       ctypes.byref(c_n_obs),
       t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
@@ -641,8 +641,8 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   flux1 = np.zeros(n_obs)
   flux2 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    flux1[i_calc[j]] += lc_rv_flags[1,i_calc[j]]*w_calc[j]
-    flux2[i_calc[j]] += lc_rv_flags[2,i_calc[j]]*w_calc[j]
+    flux1[i_calc[j]] += lc_rv_flags[1,j]*w_calc[j]
+    flux2[i_calc[j]] += lc_rv_flags[2,j]*w_calc[j]
 
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
