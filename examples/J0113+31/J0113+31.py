@@ -219,7 +219,7 @@ print('Completed MCMC parameter search')
 
 np.save('chain',sampler.chain)
 
-samples = sampler.chain[:, nruns/2:, :].reshape((-1, ndim))
+samples = sampler.chain[:, nruns//2:, :].reshape((-1, ndim))
 r_1 = np.median(samples[:,0])
 r_2 = np.median(samples[:,1])
 incl= np.median(samples[:,2])
