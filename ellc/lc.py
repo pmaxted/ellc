@@ -652,7 +652,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
 
   flux = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    flux[i_calc[j]] += lc_rv_flags[0,j]*w_calc[j]
+    flux[i_calc[j]] += lc_rv_flags[0,i_calc[j]]*w_calc[j]
 
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)

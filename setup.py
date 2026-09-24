@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import setuptools
 import subprocess
+from setuptools.command.build_ext import build_ext
+
 # from os.path import join
 
 
@@ -18,18 +20,16 @@ def configuration(parent_package='', top_path=None):
 
   return [], package_data
 
+class CustomBuildExt(build_ext):
+    def run(self):
+        subprocess.check_call(['make'])
+        subprocess.check_call(['make', 'install'])
+        super().run()
 
 if __name__ == '__main__':
-    try:
-      from version import __version__
-    except:
-      __version__ = ''
-
-    ext_modules, package_data = configuration()
-
     setuptools.setup(
         name='ellc',
-        version=__version__,
+        version='1.8.11',
         author='Pierre Maxted',
         author_email='p.maxted@keele.ac.uk',
         license='GNU GPLv3',
@@ -44,8 +44,12 @@ if __name__ == '__main__':
           'Programming Language :: Fortran'],
         install_requires=["numpy >= 1.10.0","astropy >= 1.1.1", "scipy", 
                           "emcee", "corner", "matplotlib"],
-        ext_modules=ext_modules,
         packages=['ellc'],
-        package_data=package_data,
-        include_package_data=True
+        package_data={
+            'ellc': ['data/*', 'doc/*', 'examples/*']
+        },
+        include_package_data=True,
+        cmdclass={
+            'build_ext': CustomBuildExt,
+        }
     )

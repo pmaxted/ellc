@@ -695,7 +695,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
 
   rv_1 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    rv_1[i_calc[j]] += trv_1[j]*w_calc[j]
+    rv_1[i_calc[j]] += trv_1[i_calc[j]]*w_calc[j]
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
   if n_obs_0 > 0 :
@@ -706,7 +706,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
 
   rv_2 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    rv_2[i_calc[j]] += trv_2[j]*w_calc[j]
+    rv_2[i_calc[j]] += trv_2[i_calc[j]]*w_calc[j]
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
   if n_obs_0 > 0 :

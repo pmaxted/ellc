@@ -641,8 +641,8 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
   flux1 = np.zeros(n_obs)
   flux2 = np.zeros(n_obs)
   for j in range(0,len(t_calc)):
-    flux1[i_calc[j]] += lc_rv_flags[1,j]*w_calc[j]
-    flux2[i_calc[j]] += lc_rv_flags[2,j]*w_calc[j]
+    flux1[i_calc[j]] += lc_rv_flags[1,i_calc[j]]*w_calc[j]
+    flux2[i_calc[j]] += lc_rv_flags[2,i_calc[j]]*w_calc[j]
 
   t_obs_0 = t_obs_array[n_int_array == 0 ] # Points to be interpolated
   n_obs_0 = len(t_obs_0)
