@@ -1,6 +1,8 @@
 build
 __pycache__
 *.pyc
+*.so
+*.mod
 *.egg-info
 *.so
 *.mod
