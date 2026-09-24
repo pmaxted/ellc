@@ -599,11 +599,11 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
       else:
         w_calc = np.append(w_calc, np.ones_like(t_obs_i)/(i_int-1.))
 
-  c_n_obs = ctypes.c_int(n_obs)
+  c_n_obs = ctypes.c_int(len(t_calc))
   c_n_mugrid_1 = ctypes.c_int(n_mugrid_1)
   c_n_mugrid_2 = ctypes.c_int(n_mugrid_2)
   c_verbose = ctypes.c_int(verbose)
-  lc_rv_flags = np.zeros((6, n_obs), dtype=np.float64)
+  lc_rv_flags = np.zeros((6, len(t_calc)), dtype=np.float64)
 
   lib.lc(
     ctypes.byref(c_n_obs),
@@ -622,7 +622,7 @@ def fluxes(t_obs, radius_1, radius_2, sbratio, incl,
 
   if (np.sum(np.isnan(lc_rv_flags)) > 0 ) & (verbose > 0):
     c_verbose9 = ctypes.c_int(9)
-    lc_dummy = np.zeros((6, n_obs), dtype=np.float64)
+    lc_dummy = np.zeros((6, t_calcn_obs), dtype=np.float64)
     lib.lc(
       ctypes.byref(c_n_obs),
       t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
