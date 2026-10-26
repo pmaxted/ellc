@@ -1,30 +1,50 @@
 #!/usr/bin/env python
-import setuptools
+import os
+import shlex
 import subprocess
-from setuptools.command.build_ext import build_ext
+import tempfile
 
-# from os.path import join
+import setuptools
+from setuptools.command.build_py import build_py
+from setuptools.dist import Distribution
+
+# Same files and order as the makefile (Fortran modules must be compiled
+# before the files that use them).
+F_SRC = ['constants.f90', 'utils.f90', 'coords.f90', 'gauss_legendre.f90',
+         'solve_real_poly.f90', 'ellipse.f90', 'stellar.f90', 'spots.f90',
+         'ellc.f90']
 
 
-def run_make():
-  subprocess.check_call(['make'])
-  subprocess.check_call(['make', 'install'])
+class BuildPyWithLibellc(build_py):
+    """Compile f_src/ into ellc/libellc.so for the machine doing the build.
 
+    The compiler is $FC (default gfortran). $FFLAGS replaces the default
+    optimisation flags and $LDFLAGS is appended to the link line.
+    """
 
-def configuration(parent_package='', top_path=None):
-  run_make()
-
-  package_data = {
-    'ellc': ['data/*', 'doc/*', 'examples/*']
-  }
-
-  return [], package_data
-
-class CustomBuildExt(build_ext):
     def run(self):
-        subprocess.check_call(['make'])
-        subprocess.check_call(['make', 'install'])
         super().run()
+        here = os.path.dirname(os.path.abspath(__file__))
+        target = os.path.join(self.build_lib, 'ellc', 'libellc.so')
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        fc = os.environ.get('FC', 'gfortran')
+        fflags = shlex.split(os.environ.get('FFLAGS', '-O2'))
+        ldflags = shlex.split(os.environ.get('LDFLAGS', ''))
+        sources = [os.path.join(here, 'f_src', f) for f in F_SRC]
+        with tempfile.TemporaryDirectory() as moddir:
+            cmd = ([fc] + fflags + ['-fPIC', '-shared', '-J', moddir]
+                   + sources + ['-o', target] + ldflags)
+            print(' '.join(cmd))
+            subprocess.check_call(cmd)
+
+
+class BinaryDistribution(Distribution):
+    """libellc.so is platform specific, so the wheel must not be tagged
+    py3-none-any."""
+
+    def has_ext_modules(self):
+        return True
+
 
 if __name__ == '__main__':
     setuptools.setup(
@@ -42,14 +62,15 @@ if __name__ == '__main__':
           'Topic :: Scientific/Engineering',
           'Programming Language :: Python',
           'Programming Language :: Fortran'],
-        install_requires=["numpy >= 1.10.0","astropy >= 1.1.1", "scipy", 
+        install_requires=["numpy >= 1.10.0","astropy >= 1.1.1", "scipy",
                           "emcee", "corner", "matplotlib"],
         packages=['ellc'],
         package_data={
             'ellc': ['data/*', 'doc/*', 'examples/*']
         },
         include_package_data=True,
+        distclass=BinaryDistribution,
         cmdclass={
-            'build_ext': CustomBuildExt,
+            'build_py': BuildPyWithLibellc,
         }
     )
