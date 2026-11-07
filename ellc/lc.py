@@ -25,7 +25,7 @@ _here = Path(__file__).resolve().parent
 if sys.platform == "darwin":
     _libname = "libellc.dylib"
 elif sys.platform == "win32":
-    _libname = "ellc.dll"
+    _libname = "libellc.dll"
 else:
     _libname = "libellc.so"
 
