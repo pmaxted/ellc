@@ -16,6 +16,11 @@ py.install_sources(
   subdir : 'ellc'
 )
 
+install_subdir(
+  'ellc/data',
+  install_dir : py.get_install_dir() / 'ellc'
+)
+
 libellc = shared_library(
   'ellc',
   files(

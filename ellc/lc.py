@@ -18,16 +18,20 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import numpy as np
 import os
-absdir = os.path.dirname(os.path.abspath(__file__))
+from pathlib import Path
+import ctypes
+import sys
 
-import ctypes.util
+_here = Path(__file__).resolve().parent
 
-ctypes.CDLL(
-    os.path.join(
-        os.path.dirname(__file__),
-        ctypes.util.find_library("ellc")
-    )
-)
+if sys.platform == "darwin":
+    _libname = "libellc.dylib"
+elif sys.platform == "win32":
+    _libname = "ellc.dll"
+else:
+    _libname = "libellc.so"
+
+_lib = ctypes.CDLL(str(_here / _libname))
 
 
 def lc(t_obs, radius_1, radius_2, sbratio, incl, 
@@ -618,7 +622,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
   c_verbose = ctypes.c_int(verbose)
   lc_rv_flags = np.zeros((6, len(t_calc)), dtype=np.float64)
 
-  lib.lc(
+  _lib.lc(
     ctypes.byref(c_n_obs),
     t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
     par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
@@ -635,7 +639,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
   if ((np.sum(np.isnan(lc_rv_flags)) > 0 )) & (verbose > 0):
     c_verbose9 = ctypes.c_int(9)
     lc_dummy = np.zeros((6, len(t_calc)), dtype=np.float64)
-    lib.lc(
+    _lib.lc(
       ctypes.byref(c_n_obs),
       t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
       par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
