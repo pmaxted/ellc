@@ -8,7 +8,7 @@ build-backend = "mesonpy"
 
 [project]
 name = "ellc"
-version = "1.9.0"
+version = "1.9.1"
 description = "Light curve model for eclipsing binary stars and transiting exoplanets"
 requires-python = ">=3.9"
 
