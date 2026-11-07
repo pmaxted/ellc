@@ -21,6 +21,18 @@ install_subdir(
   install_dir : py.get_install_dir() / 'ellc'
 )
 
+if host_machine.system() == 'windows'
+  install_data(
+    [
+      'runtime/libgfortran-5.dll',
+      'runtime/libquadmath-0.dll',
+      'runtime/libgcc_s_seh-1.dll',
+      'runtime/libwinpthread-1.dll',
+    ],
+    install_dir : py.get_install_dir() / 'ellc'
+  )
+endif
+
 libellc = shared_library(
   'ellc',
   files(
