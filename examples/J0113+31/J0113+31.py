@@ -323,7 +323,7 @@ plt.close()
 
 # Plot parameter distributions
 fig_p = corner.corner(samples, 
-  labels=['$r_1$','$r_2$','$i [^\circ]$','$f_c$','$f_s$','$S_J$',
+  labels=['$r_1$','$r_2$',r'$i [^\circ]$','$f_c$','$f_s$','$S_J$',
           '$K_1$ [km/s]'],label_kwargs={'fontsize':'18'},
            truths=p_0)
 if args.eps:
