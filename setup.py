@@ -29,7 +29,7 @@ class CustomBuildExt(build_ext):
 if __name__ == '__main__':
     setuptools.setup(
         name='ellc',
-        version='1.8.15',
+        version='1.8.16',
         author='Pierre Maxted',
         author_email='p.maxted@keele.ac.uk',
         license='GNU GPLv3',
