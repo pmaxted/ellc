@@ -1,12 +1,6 @@
 # This file is part of the ellc binary star model
 # Copyright (C) 2017 Pierre Maxted
 #
-# Modified by: ZhiXiang Zhang
-# Affiliation: Xiamen University, Department of Astronomy
-# Date: 2024-11-13
-# Description of modifications:
-# - Updated code for compatibility with Python 3.12
-# 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -25,9 +19,15 @@ from __future__ import (absolute_import, division, print_function,
 import numpy as np
 import os
 absdir = os.path.dirname(os.path.abspath(__file__))
-import ctypes
-libname = os.path.join(absdir, 'libellc.so')
-lib = ctypes.cdll.LoadLibrary(libname)
+
+import ctypes.util
+
+ctypes.CDLL(
+    os.path.join(
+        os.path.dirname(__file__),
+        ctypes.util.find_library("ellc")
+    )
+)
 
 
 def lc(t_obs, radius_1, radius_2, sbratio, incl, 

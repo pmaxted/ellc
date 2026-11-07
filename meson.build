@@ -5,6 +5,17 @@ project(
 
 py = import('python').find_installation()
 
+py.install_sources(
+  [
+    'ellc/__init__.py',
+    'ellc/lc.py',
+    'ellc/rv.py',
+    'ellc/ldy.py',
+    'ellc/fluxes.py',
+  ],
+  subdir : 'ellc'
+)
+
 libellc = shared_library(
   'ellc',
   files(

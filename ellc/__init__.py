@@ -31,7 +31,6 @@
 
 """
 
-from .version import __version__
 from .lc import lc
 from .rv import rv
 # from .tmin import tmin
