@@ -684,7 +684,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
     trv_2 = lc_rv_flags[4,:]
   else:
     c_rvs = np.zeros((2, n_obs), dtype=np.float64)
-   _lib.rv(
+    _lib.rv(
       ctypes.byref(c_n_obs),
       t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
       par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
