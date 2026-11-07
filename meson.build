@@ -1,7 +1,7 @@
 project(
   'ellc',
   'fortran',
-  version: '1.99.0'
+  version: '1.99.1'
 )
 
 py = import('python').find_installation()
