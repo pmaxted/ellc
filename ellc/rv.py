@@ -1,8 +1,6 @@
 # This file is part of the ellc binary star model
 # Copyright (C) 2016 Pierre Maxted
 #
-# history:
-#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -16,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 import numpy as np
 import os
 from pathlib import Path
@@ -688,7 +684,7 @@ def rv(t_obs, radius_1=None, radius_2=None, sbratio=None, incl=None,
     trv_2 = lc_rv_flags[4,:]
   else:
     c_rvs = np.zeros((2, n_obs), dtype=np.float64)
-    lib.rv(
+   _lib.rv(
       ctypes.byref(c_n_obs),
       t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
       par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
