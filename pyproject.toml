@@ -23,4 +23,3 @@ dependencies = [
 
 [project.scripts]
 ellc_emcee = "ellc_emcee:main"
-
