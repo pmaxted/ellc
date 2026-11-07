@@ -1,12 +1,6 @@
 # This file is part of the ellc binary star model
 # Copyright (C) 2017 Pierre Maxted
 #
-# Modified by: ZhiXiang Zhang
-# Affiliation: Xiamen University, Department of Astronomy
-# Date: 2024-11-13
-# Description of modifications:
-# - Updated code for compatibility with Python 3.12
-# 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -20,14 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 import numpy as np
 import os
-absdir = os.path.dirname(os.path.abspath(__file__))
+from pathlib import Path
 import ctypes
-libname = os.path.join(absdir, 'libellc.so')
-lib = ctypes.cdll.LoadLibrary(libname)
+import sys
+
+_here = Path(__file__).resolve().parent
+
+if sys.platform == "darwin":
+    _libname = "libellc.dylib"
+elif sys.platform == "win32":
+    _libname = "libellc.dll"
+else:
+    _libname = "libellc.so"
+
+_lib = ctypes.CDLL(str(_here / _libname))
 
 
 def lc(t_obs, radius_1, radius_2, sbratio, incl, 
@@ -618,7 +620,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
   c_verbose = ctypes.c_int(verbose)
   lc_rv_flags = np.zeros((6, len(t_calc)), dtype=np.float64)
 
-  lib.lc(
+  _lib.lc(
     ctypes.byref(c_n_obs),
     t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
     par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
@@ -635,7 +637,7 @@ def lc(t_obs, radius_1, radius_2, sbratio, incl,
   if ((np.sum(np.isnan(lc_rv_flags)) > 0 )) & (verbose > 0):
     c_verbose9 = ctypes.c_int(9)
     lc_dummy = np.zeros((6, len(t_calc)), dtype=np.float64)
-    lib.lc(
+    _lib.lc(
       ctypes.byref(c_n_obs),
       t_calc.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
       par.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
