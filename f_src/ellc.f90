@@ -20,6 +20,10 @@ module ellc
 !
 ! HISTORY
 ! -------
+! 2026-11-12
+!  Fix to flux-weighted rv calculation from Simon Stevenson
+!  See issue #33 on github
+!
 ! 2024-11-13
 !  Change lc and rv functions to "C" interfaces
 !  modified by ZhiXiang Zhang 
@@ -1554,7 +1558,7 @@ do iobs=0,n_obs
         lat_i = spots_1(i_spot_lat,i_spot)*dtor
         lon_i = spots_1(i_spot_lon,i_spot)*dtor
         u_s = sin(phirot - lon_i)*cos(lat_i)
-        spot_rv_1 = spot_rv_1  + (df - 1.0d0)*u_s*vsini1
+        spot_rv_1 = spot_rv_1  + (df - 1.0d0)*flux_1*u_s*vsini1
       endif
 
       if (verbose >= v_debug) then
@@ -1737,9 +1741,9 @@ do iobs=0,n_obs
       if (dorvflux) then
         phirot = phi_rot_2(iobs)
         lat_i = spots_2(i_spot_lat,i_spot)*dtor
-        lon_i = spots_2(i_spot_lon,i_spot)*dtor
+        lon_i = spots_2(i_spot_lon,i_spot)*dtor + pi
         u_s = sin(phirot - lon_i)*cos(lat_i)
-        spot_rv_2 = spot_rv_2  + (df - 1.0d0)*u_s*vsini2
+        spot_rv_2 = spot_rv_2  + (df - 1.0d0)*flux_2*u_s*vsini2
       endif
 
       if (verbose >= v_debug) then
