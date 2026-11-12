@@ -1,3 +1,7 @@
+1.9.1 (2025-11-12)
+~~~~~~~~~~~~~~~~~~~
+- Fix issue #31 "Flux-weighted RV spot term is too large"
+
 1.9.0 (2025-11-07)
 ~~~~~~~~~~~~~~~~~~~
 - Migrate to meson.build for installation.
